@@ -167,6 +167,9 @@ export type Database = {
           strategy_id: string | null
           is_outside_plan: boolean
           setup_compliance: string | null
+          is_trade_of_day: boolean
+          trade_of_day_image: string | null
+          trade_of_day_notes: string | null
           created_at: string | null
         }
         Insert: {
@@ -186,6 +189,9 @@ export type Database = {
           strategy_id?: string | null
           is_outside_plan?: boolean
           setup_compliance?: string | null
+          is_trade_of_day?: boolean
+          trade_of_day_image?: string | null
+          trade_of_day_notes?: string | null
           created_at?: string | null
         }
         Update: {
@@ -205,6 +211,9 @@ export type Database = {
           strategy_id?: string | null
           is_outside_plan?: boolean
           setup_compliance?: string | null
+          is_trade_of_day?: boolean
+          trade_of_day_image?: string | null
+          trade_of_day_notes?: string | null
           created_at?: string | null
         }
         Relationships: []

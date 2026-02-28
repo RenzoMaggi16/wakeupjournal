@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { ArrowLeft, Pencil, CheckCircle, AlertTriangle, XCircle, Ban } from "lucide-react";
+import { ArrowLeft, Pencil, CheckCircle, AlertTriangle, XCircle, Ban, Star } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,6 +30,9 @@ interface Trade {
   image_url_m15: string | null;
   is_outside_plan: boolean;
   setup_compliance: 'full' | 'partial' | 'none' | null;
+  is_trade_of_day?: boolean;
+  trade_of_day_image?: string | null;
+  trade_of_day_notes?: string | null;
   accounts?: {
     account_name: string;
   };
@@ -299,6 +302,38 @@ const TradeDetail = () => {
                 </div>
               </div>
             </div>
+
+            {/* ⭐ Trade del Día */}
+            {trade.is_trade_of_day && (
+              <div className="mt-6 p-4 rounded-lg border border-yellow-500/40 bg-yellow-500/5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                  <h3 className="text-lg font-semibold text-yellow-300">⭐ Trade del Día</h3>
+                </div>
+
+                {trade.trade_of_day_image && (
+                  <div className="mb-3">
+                    <button
+                      onClick={() => setSelectedImageUrl(trade.trade_of_day_image!)}
+                      className="block w-full max-w-lg h-64 rounded-md overflow-hidden border border-yellow-500/30 hover:opacity-80 transition-opacity bg-neutral-900"
+                    >
+                      <img
+                        src={trade.trade_of_day_image}
+                        alt="Trade del Día"
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  </div>
+                )}
+
+                {trade.trade_of_day_notes && (
+                  <div className="bg-neutral-800/50 p-3 rounded-md">
+                    <h4 className="text-sm text-yellow-200/70 font-medium mb-1">¿Por qué es el Trade del Día?</h4>
+                    <p className="text-sm text-neutral-100 whitespace-pre-wrap">{trade.trade_of_day_notes}</p>
+                  </div>
+                )}
+              </div>
+            )}
 
 
             {/* Sección de Notas */}

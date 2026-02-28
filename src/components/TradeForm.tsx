@@ -11,7 +11,8 @@ import { Combobox } from "@/components/ui/combobox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Plus, AlertTriangle } from "lucide-react";
+import { CalendarIcon, Plus, AlertTriangle, Star } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -87,6 +88,11 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
   const [imageUrlM1, setImageUrlM1] = useState('');
   const [imageUrlM5, setImageUrlM5] = useState('');
   const [imageUrlM15, setImageUrlM15] = useState('');
+
+  // Estados para Trade del Día
+  const [isTradeOfDay, setIsTradeOfDay] = useState(false);
+  const [tradeOfDayImage, setTradeOfDayImage] = useState('');
+  const [tradeOfDayNotes, setTradeOfDayNotes] = useState('');
 
   // --- Handlers ---
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -166,6 +172,11 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
       setSetupCompliance(tradeToEdit.setup_compliance || 'full');
       setOutsidePlanWarning(tradeToEdit.is_outside_plan || false);
 
+      // Trade del Día
+      setIsTradeOfDay(tradeToEdit.is_trade_of_day || false);
+      setTradeOfDayImage(tradeToEdit.trade_of_day_image || '');
+      setTradeOfDayNotes(tradeToEdit.trade_of_day_notes || '');
+
     } else {
       // Lógica para resetear el formulario si estamos en modo "NUEVO TRADE"
       setFormData({
@@ -186,6 +197,9 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
       setImageUrlM15('');
       setSetupCompliance('full');
       setOutsidePlanWarning(false);
+      setIsTradeOfDay(false);
+      setTradeOfDayImage('');
+      setTradeOfDayNotes('');
 
       // Auto-seleccionar cuenta si hay cuentas disponibles
       if (accounts.length > 0) {
@@ -332,6 +346,9 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
         image_url_m15: imageUrlM15?.trim() || null,
         is_outside_plan: isOutsidePlan,
         setup_compliance: setupCompliance,
+        is_trade_of_day: isTradeOfDay,
+        trade_of_day_image: isTradeOfDay ? (tradeOfDayImage?.trim() || null) : null,
+        trade_of_day_notes: isTradeOfDay ? (tradeOfDayNotes?.trim() || null) : null,
       };
 
       let tradeId: string | number; // Para guardar el ID del trade
@@ -479,6 +496,9 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
         setImageUrlM15('');
         setSetupCompliance('full');
         setOutsidePlanWarning(false);
+        setIsTradeOfDay(false);
+        setTradeOfDayImage('');
+        setTradeOfDayNotes('');
 
         // Mantener la cuenta seleccionada o seleccionar la primera
         if (accounts.length > 0) {
@@ -756,6 +776,48 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
                 />
               </div>
             </div>
+          </div>
+
+          {/* Trade del Día */}
+          <div className="space-y-3 p-4 border rounded-md bg-muted/10 mt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Star className={`h-5 w-5 ${isTradeOfDay ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
+                <Label className="text-base font-semibold cursor-pointer" htmlFor="trade-of-day-switch">Trade del Día</Label>
+              </div>
+              <Switch
+                id="trade-of-day-switch"
+                checked={isTradeOfDay}
+                onCheckedChange={setIsTradeOfDay}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">¿Hubo un trade destacado que no tomaste? Guardalo!</p>
+
+            {isTradeOfDay && (
+              <div className="space-y-3 mt-2 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                <div className="space-y-1">
+                  <Label htmlFor="trade_of_day_image" className="text-sm">Imagen del Trade</Label>
+                  <Input
+                    id="trade_of_day_image"
+                    type="url"
+                    placeholder="Pegar enlace a la imagen del trade..."
+                    value={tradeOfDayImage}
+                    onChange={(e) => setTradeOfDayImage(e.target.value)}
+                    className="bg-secondary"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="trade_of_day_notes" className="text-sm">¿Por qué es tu Trade del Día?</Label>
+                  <Textarea
+                    id="trade_of_day_notes"
+                    placeholder="Explica brevemente por qué destacás esta operación..."
+                    value={tradeOfDayNotes}
+                    onChange={(e) => setTradeOfDayNotes(e.target.value)}
+                    className="bg-transparent border border-neutral-700 min-h-[60px]"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Botón de Enviar */}
