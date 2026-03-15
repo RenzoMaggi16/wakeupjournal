@@ -115,22 +115,16 @@ export const PayoutForm = () => {
             dailyPnL.set(dateStr, (dailyPnL.get(dateStr) || 0) + Number(t.pnl_neto ?? 0));
         });
 
-        // Sort days chronologically and count CONSECUTIVE profit days
-        // A losing day resets the streak to 0
-        const sortedDays = [...dailyPnL.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-        let consecutiveProfitDays = 0;
-        for (const [, pnl] of sortedDays) {
-            if (pnl > 0) {
-                consecutiveProfitDays++;
-            } else {
-                consecutiveProfitDays = 0; // Reset on losing/breakeven day
-            }
-        }
+        // Count total positive days 
+        let totalProfitDays = 0;
+        dailyPnL.forEach((pnl) => {
+            if (pnl > 0) totalProfitDays++;
+        });
 
         return {
-            profitDays: consecutiveProfitDays,
+            profitDays: totalProfitDays,
             minDays,
-            isCompleted: consecutiveProfitDays >= minDays,
+            isCompleted: totalProfitDays >= minDays,
             withdrawalPct: pct || 100,
         };
     }, [selectedAccount, trades]);
@@ -355,7 +349,7 @@ export const PayoutForm = () => {
                                         <p className="text-xs text-muted-foreground">
                                             {profitDaysInfo && !profitDaysInfo.isCompleted
                                                 ? `Necesitás cumplir ${profitDaysInfo.minDays} días profit (tenés ${profitDaysInfo.profitDays}).`
-                                                : `Tu balance debe superar ${thresholdLabel} para poder retirar.`
+                                                : `Tu balance debe superar el ${thresholdLabel} para poder retirar.`
                                             }
                                         </p>
                                     </div>

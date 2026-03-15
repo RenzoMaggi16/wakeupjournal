@@ -24,22 +24,16 @@ export const ProfitDaysTracker = ({ trades, minProfitDays, withdrawalPct }: Prof
       dailyPnL.set(dateStr, (dailyPnL.get(dateStr) || 0) + Number(trade.pnl_neto ?? 0));
     });
 
-    // Sort days chronologically and count CONSECUTIVE profit days
-    // A losing day resets the streak to 0
-    const sortedDays = [...dailyPnL.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-    let consecutiveProfitDays = 0;
-    for (const [, pnl] of sortedDays) {
-      if (pnl > 0) {
-        consecutiveProfitDays++;
-      } else {
-        consecutiveProfitDays = 0; // Reset on losing/breakeven day
-      }
-    }
+    // Count total days where net PnL > 0
+    let totalProfitDays = 0;
+    dailyPnL.forEach((pnl) => {
+      if (pnl > 0) totalProfitDays++;
+    });
 
     return {
-      profitDays: consecutiveProfitDays,
+      profitDays: totalProfitDays,
       totalDays: dailyPnL.size,
-      isCompleted: consecutiveProfitDays >= minProfitDays,
+      isCompleted: totalProfitDays >= minProfitDays,
     };
   }, [trades, minProfitDays]);
 
