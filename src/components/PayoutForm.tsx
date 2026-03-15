@@ -107,27 +107,28 @@ export const PayoutForm = () => {
 
         // Group trades by date → sum PnL per day → count positive days
         // Only count trades AFTER evaluation passed date AND AFTER the last payout
-        const passDate = selectedAccount.evaluation_passed_at;
+        const passDateStr = selectedAccount.evaluation_passed_at 
+            ? selectedAccount.evaluation_passed_at.split('T')[0] 
+            : null;
         
-        let lastPayoutDate: Date | null = null;
+        let lastPayoutDateStr: string | null = null;
         if (existingPayouts && existingPayouts.length > 0) {
             // existingPayouts is sorted ascending by payout_date, so the last one is the most recent
             const latestPayout = existingPayouts[existingPayouts.length - 1];
             if (latestPayout.payout_date) {
-                lastPayoutDate = new Date(latestPayout.payout_date);
+                lastPayoutDateStr = latestPayout.payout_date.split('T')[0];
             }
         }
 
         const dailyPnL = new Map<string, number>();
         trades.forEach((t: any) => {
             if (!t.entry_time) return;
-            const tradeDate = new Date(t.entry_time);
+            const tradeDateStr = t.entry_time.split('T')[0];
             
-            if (passDate && tradeDate.getTime() <= new Date(passDate).getTime()) return;
-            if (lastPayoutDate && tradeDate.getTime() <= lastPayoutDate.getTime()) return;
+            if (passDateStr && tradeDateStr <= passDateStr) return;
+            if (lastPayoutDateStr && tradeDateStr <= lastPayoutDateStr) return;
             
-            const dateStr = tradeDate.toISOString().split('T')[0];
-            dailyPnL.set(dateStr, (dailyPnL.get(dateStr) || 0) + Number(t.pnl_neto ?? 0));
+            dailyPnL.set(tradeDateStr, (dailyPnL.get(tradeDateStr) || 0) + Number(t.pnl_neto ?? 0));
         });
 
         // Count total positive days 

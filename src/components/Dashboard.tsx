@@ -458,26 +458,30 @@ export const Dashboard = () => {
                 const acc = accounts.find(a => a.id === selectedAccountId);
                 if (!acc || acc.account_type !== 'live' || !acc.consistency_min_profit_days || acc.consistency_min_profit_days <= 0) return null;
                 // Only count trades AFTER account was passed AND AFTER the latest payout
-                const passDate = acc.evaluation_passed_at;
+                const passDateStr = acc.evaluation_passed_at 
+                  ? acc.evaluation_passed_at.split('T')[0] 
+                  : null;
                 
                 // Find latest payout for this account
                 const accountPayouts = payouts.filter(p => p.account_id === acc.id);
-                let lastPayoutDate: Date | null = null;
+                let lastPayoutDateStr: string | null = null;
                 if (accountPayouts.length > 0) {
                   // payouts is sorted ascending, so last is most recent
                   const latestPayout = accountPayouts[accountPayouts.length - 1];
                   if (latestPayout.payout_date) {
-                    lastPayoutDate = new Date(latestPayout.payout_date);
+                    lastPayoutDateStr = latestPayout.payout_date.split('T')[0];
                   }
                 }
 
                 const postPassTrades = allTrades.filter(t => {
-                  const tradeDate = new Date(t.entry_time);
+                  if (!t.entry_time) return false;
+                  const tradeDateStr = t.entry_time.split('T')[0];
+                  
                   let includeTrade = true;
-                  if (passDate && tradeDate.getTime() <= new Date(passDate).getTime()) {
+                  if (passDateStr && tradeDateStr <= passDateStr) {
                     includeTrade = false;
                   }
-                  if (lastPayoutDate && tradeDate.getTime() <= lastPayoutDate.getTime()) {
+                  if (lastPayoutDateStr && tradeDateStr <= lastPayoutDateStr) {
                     includeTrade = false;
                   }
                   return includeTrade;
