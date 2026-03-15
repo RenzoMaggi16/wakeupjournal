@@ -20,6 +20,7 @@ import { useDisciplineMetrics } from "@/hooks/useDisciplineMetrics";
 import { DailyPsychologyQuote } from "@/components/dashboard/DailyPsychologyQuote";
 import { RiskAccountCard } from "@/components/dashboard/RiskAccountCard";
 import { ProfitDaysTracker } from "@/components/dashboard/ProfitDaysTracker";
+import { DayTradesModal } from "@/components/dashboard/DayTradesModal";
 import { format, isSameDay, parseISO, getDay, startOfWeek, endOfWeek, isWithinInterval, eachDayOfInterval, subDays, startOfDay, endOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -61,6 +62,11 @@ export const Dashboard = () => {
     return (saved === 'percentage' ? 'percentage' : 'dollars') as CalendarDisplayMode;
   });
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+
+  // Day trades modal state
+  const [dayModalOpen, setDayModalOpen] = useState(false);
+  const [dayModalDate, setDayModalDate] = useState<Date | null>(null);
+  const [dayModalTradeIds, setDayModalTradeIds] = useState<string[]>([]);
 
   // Trading Plan hook
   const { plan, isLoading: isLoadingPlan, savePlan, isSaving } = useTradingPlan();
@@ -550,6 +556,11 @@ export const Dashboard = () => {
                 payouts={payouts}
                 displayMode={displayMode}
                 initialCapital={accounts.find(a => a.id === selectedAccountId)?.initial_capital || 0}
+                onDayClick={(date, tradeIds) => {
+                  setDayModalDate(date);
+                  setDayModalTradeIds(tradeIds);
+                  setDayModalOpen(true);
+                }}
               />
               <DailyPerformanceStats
                 trades={trades}
@@ -592,6 +603,13 @@ export const Dashboard = () => {
         plan={plan}
         onSave={savePlan}
         isSaving={isSaving}
+      />
+
+      <DayTradesModal
+        open={dayModalOpen}
+        onOpenChange={setDayModalOpen}
+        date={dayModalDate}
+        accountTradeIds={dayModalTradeIds}
       />
     </div>
   );

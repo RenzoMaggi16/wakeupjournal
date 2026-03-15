@@ -31,9 +31,10 @@ interface PnLCalendarProps {
   payouts?: Payout[];
   displayMode?: CalendarDisplayMode;
   initialCapital?: number;
+  onDayClick?: (date: Date, tradeIds: string[]) => void;
 }
 
-export const PnLCalendar = ({ trades = [], payouts = [], displayMode = 'dollars', initialCapital = 0 }: PnLCalendarProps) => {
+export const PnLCalendar = ({ trades = [], payouts = [], displayMode = 'dollars', initialCapital = 0, onDayClick }: PnLCalendarProps) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [dailyPnL, setDailyPnL] = useState<DayPnL[]>([]);
 
@@ -160,8 +161,20 @@ export const PnLCalendar = ({ trades = [], payouts = [], displayMode = 'dollars'
                 ? (isProfitable ? 'bg-calendar-profit' : isLoss ? 'bg-calendar-loss' : 'bg-neutral-800')
                 : hasPayout ? 'bg-violet-500/10' : 'bg-card';
 
+              const handleDayClick = () => {
+                if (onDayClick && hasTrades) {
+                  const dayTradeIds = trades
+                    .filter(t => isSameDay(new Date(t.entry_time), date))
+                    .map(t => t.id);
+                  onDayClick(date, dayTradeIds);
+                }
+              };
+
               return (
-                <div className={`rounded-md ${borderClass} relative flex items-center justify-center flex-col p-1 h-24 w-full ${bgClass}`}>
+                <div
+                  className={`rounded-md ${borderClass} relative flex items-center justify-center flex-col p-1 h-24 w-full ${bgClass} ${hasTrades ? 'cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all' : ''}`}
+                  onClick={handleDayClick}
+                >
                   {/* Número del día en la esquina superior derecha */}
                   <div className="absolute top-1 right-1">
                     {isCurrentDay ? (
