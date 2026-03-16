@@ -487,9 +487,9 @@ export const Dashboard = () => {
           </div>
 
           {/* Main Grid: Left Stats + Right Calendar */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {/* Left Column */}
-            <div className="col-span-1 flex flex-col gap-4">
+            <div className="md:col-span-1 flex flex-col gap-4">
               {/* Risk Account Card */}
               {selectedAccountId && accounts.find(a => a.id === selectedAccountId) && (
                 <RiskAccountCard
@@ -553,7 +553,7 @@ export const Dashboard = () => {
 
               {/* Profit Factor Card — improved aesthetics */}
               <StatCard title="Profit Factor" value={metrics?.profitFactor ? (metrics.profitFactor === 100 && metrics.grossLoss === 0 ? "∞" : metrics.profitFactor.toFixed(2)) : "0.00"}>
-                <div className="flex flex-col items-center gap-2 mt-2">
+                <div className="flex flex-col items-center gap-12 mt-2">
                   {/* Chart */}
                   <div className="h-16 w-16">
                     <ProfitFactorChart
@@ -580,26 +580,10 @@ export const Dashboard = () => {
               </StatCard>
 
               {/* Best Day Card — improved aesthetics */}
-              <StatCard title="Mejor Día">
-                <div className="flex items-center gap-3 py-0.5">
-                  <div className="text-xl font-bold capitalize text-foreground tracking-tight">
-                    {metrics?.bestDayIndex !== -1 ? metrics?.bestDayName : "N/A"}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {metrics?.bestDayPercentage > 0 && (
-                      <span className="text-m font-bold" style={{ color: 'var(--profit-color)' }}>
-                        +{metrics?.bestDayPercentage?.toFixed(1)}%
-                      </span>
-                    )}
-                    <span className="text-m font-medium text-muted-foreground">
-                      ${metrics?.bestDayProfit?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "0.00"}
-                    </span>
-                  </div>
-                </div>
-              </StatCard>
+              
             </div>
 
-            <div className="col-span-1 md:col-span-3">
+            <div className="md:col-span-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="md:col-span-3 space-y-4">
                   <PnLCalendar
@@ -653,14 +637,16 @@ export const Dashboard = () => {
                     </div>
                     <div className="mt-3 rounded-md border border-border/30 bg-muted/10 p-2">
                       <div className="text-xs text-muted-foreground mb-1">PNL diario</div>
-                      <div className="h-[120px] w-full">
+                      <div className="h-[140px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={monthlyDailyData}>
                             <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
                             <XAxis dataKey="day" tick={{ fontSize: 10 }} />
                             <YAxis hide />
                             <Tooltip
-                              contentStyle={{ backgroundColor: '#1e1e1e', border: 'none' }}
+                              contentStyle={{ backgroundColor: '#1e1e1e', border: 'none', color: '#e5e7eb' }}
+                              labelStyle={{ color: '#e5e7eb' }}
+                              itemStyle={{ color: '#e5e7eb' }}
                               formatter={(value: number) => [`$${Number(value).toFixed(2)}`, 'PnL']}
                             />
                             <Bar dataKey="pnl">
@@ -703,17 +689,24 @@ export const Dashboard = () => {
 
       {/* Trading Plan + Balance side-by-side (full width row) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <TradingPlanCard
-          plan={plan}
-          isLoading={isLoadingPlan}
-          onEdit={() => setIsPlanModalOpen(true)}
-        />
-        <StatCard title="Balance" value={
-          displayMode === 'percentage' && (accounts.find(a => a.id === selectedAccountId)?.initial_capital || 0) > 0
-            ? `${(((currentBalance - (accounts.find(a => a.id === selectedAccountId)?.initial_capital || 0)) / (accounts.find(a => a.id === selectedAccountId)?.initial_capital || 1)) * 100).toFixed(2)}%`
-            : `$${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
-        }>
-          <div className="min-h-[420px] md:min-h-[480px]">
+        <div className="max-h-[700px] overflow-y-auto pr-2">
+          <TradingPlanCard
+            plan={plan}
+            isLoading={isLoadingPlan}
+            onEdit={() => setIsPlanModalOpen(true)}
+          />
+        </div>
+        <StatCard
+          title="Balance"
+          value={
+            displayMode === 'percentage' && (accounts.find(a => a.id === selectedAccountId)?.initial_capital || 0) > 0
+              ? `${(((currentBalance - (accounts.find(a => a.id === selectedAccountId)?.initial_capital || 0)) / (accounts.find(a => a.id === selectedAccountId)?.initial_capital || 1)) * 100).toFixed(2)}%`
+              : `$${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+          }
+          titleClassName="text-sm md:text-base font-semibold text-foreground text-center"
+          contentClassName="flex flex-col items-center justify-center gap-4 text-center"
+        >
+          <div className="min-h-[500px] md:min-h-[560px] w-full">
             <EquityChart data={equityCurveData.map(d => ({ date: d.date, cumulativePnl: d.cumulativePnl }))} />
           </div>
         </StatCard>
