@@ -304,30 +304,57 @@ export const Dashboard = () => {
       const d = parseISO(t.entry_time);
       return isWithinInterval(d, { start: monthStart, end: monthEnd });
     });
-    const byWeek = new Map<string, { weekStart: Date; pnl: number; wins: number; losses: number }>();
+
+    // Helper: group trades by day and compute daily PnL
+    const groupByDay = (tradeList: Trade[]) => {
+      const dayMap = new Map<string, number>();
+      tradeList.forEach(t => {
+        const ds = format(parseISO(t.entry_time), 'yyyy-MM-dd');
+        dayMap.set(ds, (dayMap.get(ds) || 0) + Number(t.pnl_neto));
+      });
+      return dayMap;
+    };
+
+    // Weekly summaries with winrate calculated per DAY
+    const byWeek = new Map<string, { weekStart: Date; pnl: number; trades: Trade[] }>();
     monthlyTrades.forEach(t => {
       const d = parseISO(t.entry_time);
       const ws = startOfWeek(d, { weekStartsOn: 0 });
       const key = format(ws, 'yyyy-MM-dd');
-      const cur = byWeek.get(key) || { weekStart: ws, pnl: 0, wins: 0, losses: 0 };
+      const cur = byWeek.get(key) || { weekStart: ws, pnl: 0, trades: [] };
       cur.pnl += Number(t.pnl_neto);
-      if (t.pnl_neto > 0) cur.wins += 1;
-      else if (t.pnl_neto < 0) cur.losses += 1;
+      cur.trades.push(t);
       byWeek.set(key, cur);
     });
     const weeklySummaries = Array.from(byWeek.values()).sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime()).map(w => {
       const end = endOfWeek(w.weekStart, { weekStartsOn: 0 });
-      const nonBreakeven = w.wins + w.losses;
-      const wr = nonBreakeven > 0 ? (w.wins / nonBreakeven) * 100 : 0;
+      const weekDayPnls = groupByDay(w.trades);
+      let weekWinDays = 0;
+      let weekLossDays = 0;
+      weekDayPnls.forEach(pnl => {
+        if (pnl > 0) weekWinDays++;
+        else if (pnl < 0) weekLossDays++;
+      });
+      const weekNonBE = weekWinDays + weekLossDays;
+      const wr = weekNonBE > 0 ? (weekWinDays / weekNonBE) * 100 : 0;
       return {
         label: `${format(w.weekStart, 'd MMM', { locale: es })} - ${format(end, 'd MMM', { locale: es })}`,
         pnl: w.pnl,
         winRate: wr,
       };
     });
-    const wins = monthlyTrades.filter(t => t.pnl_neto > 0).length;
-    const losses = monthlyTrades.filter(t => t.pnl_neto < 0).length;
-    const monthlyWinRate = (wins + losses) > 0 ? (wins / (wins + losses)) * 100 : 0;
+
+    // Monthly winrate calculated per DAY
+    const monthlyDayPnls = groupByDay(monthlyTrades);
+    let monthWinDays = 0;
+    let monthLossDays = 0;
+    monthlyDayPnls.forEach(pnl => {
+      if (pnl > 0) monthWinDays++;
+      else if (pnl < 0) monthLossDays++;
+    });
+    const monthNonBE = monthWinDays + monthLossDays;
+    const monthlyWinRate = monthNonBE > 0 ? (monthWinDays / monthNonBE) * 100 : 0;
+
     const monthlyPayout = payouts.filter(p => {
       const d = parseISO(p.payout_date);
       return isWithinInterval(d, { start: monthStart, end: monthEnd });
