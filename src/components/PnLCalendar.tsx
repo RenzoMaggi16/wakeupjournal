@@ -172,13 +172,13 @@ export const PnLCalendar = ({ trades = [], payouts = [], displayMode = 'dollars'
 
               return (
                 <div
-                  className={`rounded-md ${borderClass} relative flex items-center justify-center flex-col p-0.5 md:p-1 h-14 md:h-24 w-full ${bgClass} ${hasTrades ? 'cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all' : ''}`}
+                  className={`rounded-lg ${borderClass} relative flex items-center justify-center flex-col p-0.5 md:p-1 h-14 md:h-24 w-full ${bgClass} ${hasTrades ? 'cursor-pointer hover:scale-[1.03] hover:ring-1 hover:ring-primary/40 transition-all duration-200' : 'transition-all duration-200'}`}
                   onClick={handleDayClick}
                 >
                   {/* Número del día en la esquina superior derecha */}
                   <div className="absolute top-0.5 right-0.5 md:top-1 md:right-1">
                     {isCurrentDay ? (
-                      <span className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-4 h-4 md:w-5 md:h-5 text-[9px] md:text-xs">
+                      <span className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-4 h-4 md:w-5 md:h-5 text-[9px] md:text-xs shadow-[0_0_8px_rgba(139,92,246,0.3)]">
                         {format(date, "d")}
                       </span>
                     ) : (

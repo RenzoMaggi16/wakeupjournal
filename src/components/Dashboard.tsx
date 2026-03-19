@@ -539,10 +539,10 @@ export const Dashboard = () => {
                 const acc = accounts.find(a => a.id === selectedAccountId);
                 if (!acc || acc.account_type !== 'live' || !acc.consistency_min_profit_days || acc.consistency_min_profit_days <= 0) return null;
                 // Only count trades AFTER account was passed AND AFTER the latest payout
-                const passDateStr = acc.evaluation_passed_at 
-                  ? acc.evaluation_passed_at.split('T')[0] 
+                const passDateStr = acc.evaluation_passed_at
+                  ? acc.evaluation_passed_at.split('T')[0]
                   : null;
-                
+
                 // Find latest payout for this account
                 const accountPayouts = payouts.filter(p => p.account_id === acc.id);
                 let lastPayoutDateStr: string | null = null;
@@ -557,7 +557,7 @@ export const Dashboard = () => {
                 const postPassTrades = allTrades.filter(t => {
                   if (!t.entry_time) return false;
                   const tradeDateStr = t.entry_time.split('T')[0];
-                  
+
                   let includeTrade = true;
                   if (passDateStr && tradeDateStr <= passDateStr) {
                     includeTrade = false;
@@ -607,7 +607,7 @@ export const Dashboard = () => {
               </StatCard>
 
               {/* Best Day Card — improved aesthetics */}
-              
+
             </div>
 
             <div className="md:col-span-4">

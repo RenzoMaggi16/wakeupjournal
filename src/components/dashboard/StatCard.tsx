@@ -21,14 +21,20 @@ export const StatCard = ({
   contentClassName,
 }: StatCardProps) => {
   return (
-    <Card className={cn("bg-card border-border/50 shadow-sm", className)}>
+    <Card className={cn(
+      "group relative overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg",
+      className
+    )}>
+      {/* Subtle gradient accent line at top */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
+      
       <CardHeader className={cn("pb-2", headerClassName)}>
-        <CardTitle className="text-xs font-medium text-muted-foreground">
+        <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           {title}
         </CardTitle>
       </CardHeader>
       <CardContent className={cn("space-y-1", contentClassName)}>
-        {value && <div className="text-xl font-bold">{value}</div>}
+        {value && <div className="text-2xl font-bold tracking-tight">{value}</div>}
         {subValue && (
           <p className="text-xs text-muted-foreground">{subValue}</p>
         )}

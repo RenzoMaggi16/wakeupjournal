@@ -10,7 +10,8 @@ interface DisciplineCardProps {
 export const DisciplineCard = ({ metrics, hasPlan }: DisciplineCardProps) => {
     if (!hasPlan) {
         return (
-            <Card className="border-border bg-card/80 backdrop-blur-sm">
+            <Card className="relative overflow-hidden">
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-500/40 to-transparent" />
                 <CardContent className="p-4">
                     <div className="flex items-center gap-2 mb-3">
                         <Flame className="h-5 w-5 text-orange-400" />
@@ -25,10 +26,11 @@ export const DisciplineCard = ({ metrics, hasPlan }: DisciplineCardProps) => {
     }
 
     return (
-        <Card className="border-border bg-card/80 backdrop-blur-sm">
+        <Card className="relative overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-500/40 to-transparent" />
             <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-3">
-                    <Flame className="h-5 w-5 text-orange-400" />
+                    <Flame className="h-5 w-5 text-orange-400 drop-shadow-[0_0_6px_rgba(251,146,60,0.4)]" />
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Disciplina</h3>
                 </div>
                 <div className="space-y-3">
@@ -57,7 +59,7 @@ export const DisciplineCard = ({ metrics, hasPlan }: DisciplineCardProps) => {
                             <Zap className="h-3 w-3" />
                             Racha actual
                         </span>
-                        <span className="text-lg font-bold text-primary">
+                        <span className="text-lg font-bold text-gradient">
                             {metrics.currentDisciplineStreak} {metrics.currentDisciplineStreak === 1 ? 'día' : 'días'}
                         </span>
                     </div>

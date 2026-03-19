@@ -57,7 +57,7 @@ export const DashboardHeader = ({ selectedAccountId, onAccountChange, accounts, 
         <div className="flex flex-col gap-3 mb-1">
             <div>
                 <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                    Bienvenido <span className="text-profit-custom">{userName}</span>
+                    Bienvenido <span className="text-gradient">{userName}</span>
                 </h1>
             </div>
 
