@@ -172,34 +172,34 @@ export const PnLCalendar = ({ trades = [], payouts = [], displayMode = 'dollars'
 
               return (
                 <div
-                  className={`rounded-md ${borderClass} relative flex items-center justify-center flex-col p-1 h-24 w-full ${bgClass} ${hasTrades ? 'cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all' : ''}`}
+                  className={`rounded-md ${borderClass} relative flex items-center justify-center flex-col p-0.5 md:p-1 h-14 md:h-24 w-full ${bgClass} ${hasTrades ? 'cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all' : ''}`}
                   onClick={handleDayClick}
                 >
                   {/* Número del día en la esquina superior derecha */}
-                  <div className="absolute top-1 right-1">
+                  <div className="absolute top-0.5 right-0.5 md:top-1 md:right-1">
                     {isCurrentDay ? (
-                      <span className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-5 h-5 text-xs">
+                      <span className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-4 h-4 md:w-5 md:h-5 text-[9px] md:text-xs">
                         {format(date, "d")}
                       </span>
                     ) : (
-                      <span className="text-xs text-primary/70">
+                      <span className="text-[9px] md:text-xs text-primary/70">
                         {format(date, "d")}
                       </span>
                     )}
                   </div>
 
                   {/* Contenido del PnL */}
-                  <div className="flex flex-col items-center justify-center gap-0.5">
+                  <div className="flex flex-col items-center justify-center gap-0">
                     {hasTrades ? (
-                      <span className={`text-sm font-medium ${isNeutral ? 'text-neutral-300' : ''}`}>
+                      <span className={`text-[10px] md:text-sm font-medium ${isNeutral ? 'text-neutral-300' : ''}`}>
                         {displayMode === 'percentage' && initialCapital > 0
-                          ? `${((dayPnL.pnl / initialCapital) * 100).toFixed(2)}%`
-                          : `$${Math.abs(dayPnL.pnl).toFixed(2)}`
+                          ? `${((dayPnL.pnl / initialCapital) * 100).toFixed(1)}%`
+                          : `$${Math.abs(dayPnL.pnl).toFixed(0)}`
                         }
                       </span>
                     ) : null}
                     {hasPayout && (
-                      <span className="text-[10px] font-semibold text-violet-400">
+                      <span className="text-[8px] md:text-[10px] font-semibold text-violet-400">
                         💸 -${dayPnL!.payoutAmount.toFixed(0)}
                       </span>
                     )}

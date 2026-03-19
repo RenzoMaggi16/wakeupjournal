@@ -259,8 +259,13 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    overflow-x: hidden;
+  }
+
   body {
     @apply text-foreground;
+    overflow-x: hidden;
     background:
       radial-gradient(circle at top, var(--gradient-start-color), var(--gradient-end-color) 50%),
       hsl(var(--background));

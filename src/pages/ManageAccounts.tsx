@@ -348,23 +348,23 @@ const ManageAccounts = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Gestionar Cuentas</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-2xl sm:text-3xl font-bold">Gestionar Cuentas</h1>
+          <p className="text-muted-foreground mt-1 sm:mt-2 text-sm">
             Administra tus cuentas de trading y su configuración
           </p>
         </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => handleOpenDialog()} className="gap-2">
+            <Button onClick={() => handleOpenDialog()} className="gap-2 w-full sm:w-auto">
               <Plus className="h-4 w-4" />
               Nueva Cuenta
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingAccount ? 'Editar Cuenta' : 'Nueva Cuenta'}
@@ -406,7 +406,7 @@ const ManageAccounts = () => {
                       })
                     }));
                   }}
-                  className="flex space-x-4"
+                  className="flex flex-wrap gap-2 sm:gap-4"
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="personal" id="personal" />
@@ -476,7 +476,7 @@ const ManageAccounts = () => {
                     <RadioGroup
                       value={formData.funding_phases.toString()}
                       onValueChange={(value) => setFormData({ ...formData, funding_phases: parseInt(value) })}
-                      className="flex space-x-4"
+                      className="flex flex-wrap gap-2 sm:gap-4"
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="1" id="fase1" />
@@ -526,7 +526,7 @@ const ManageAccounts = () => {
                 <RadioGroup
                   value={formData.drawdown_type}
                   onValueChange={(value: "fixed" | "trailing") => setFormData({ ...formData, drawdown_type: value })}
-                  className="flex space-x-4"
+                  className="flex flex-wrap gap-2 sm:gap-4"
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="trailing" id="trailing" />

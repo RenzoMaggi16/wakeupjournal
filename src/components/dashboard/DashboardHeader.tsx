@@ -54,23 +54,22 @@ export const DashboardHeader = ({ selectedAccountId, onAccountChange, accounts, 
     };
 
     return (
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-1">
+        <div className="flex flex-col gap-3 mb-1">
             <div>
-                <h1 className="text-2xl font-bold flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
                     Bienvenido <span className="text-profit-custom">{userName}</span>
                 </h1>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full md:w-auto">
                 <Select
                     value={selectedAccountId || ""}
                     onValueChange={onAccountChange}
                 >
-                    <SelectTrigger className="w-[180px] bg-card border-border/50">
+                    <SelectTrigger className="w-full sm:w-[180px] bg-card border-border/50">
                         <SelectValue placeholder="Seleccionar Cuenta" />
                     </SelectTrigger>
                     <SelectContent>
-                        {/* All Accounts option removed as per request */}
                         {accounts.map((acc) => (
                             <SelectItem key={acc.id} value={acc.id}>
                                 {acc.account_type === 'live' ? '🏦 ' : '🧪 '}
@@ -82,7 +81,7 @@ export const DashboardHeader = ({ selectedAccountId, onAccountChange, accounts, 
 
                 {/* Display Mode Toggle */}
                 <Select value={displayMode} onValueChange={(val) => setDisplayMode(val as CalendarDisplayMode)}>
-                    <SelectTrigger className="w-[140px] bg-card border-border/50">
+                    <SelectTrigger className="w-full sm:w-[140px] bg-card border-border/50">
                         <SelectValue placeholder="Modo" />
                     </SelectTrigger>
                     <SelectContent>
@@ -95,20 +94,18 @@ export const DashboardHeader = ({ selectedAccountId, onAccountChange, accounts, 
                     </SelectContent>
                 </Select>
 
-
-
-                {/* Date Picker */}
+                {/* Date Picker - spans full width on mobile */}
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button
                             id="date"
                             variant={"outline"}
                             className={cn(
-                                "justify-start text-left font-normal bg-card border-border/50 min-w-[240px]",
+                                "justify-start text-left font-normal bg-card border-border/50 col-span-2 sm:col-span-1 w-full sm:w-auto sm:min-w-[240px] text-xs sm:text-sm",
                                 !dateRange && "text-muted-foreground"
                             )}
                         >
-                            <CalendarIcon className="mr-2 h-4 w-4 text-blue-500" />
+                            <CalendarIcon className="mr-2 h-4 w-4 text-blue-500 shrink-0" />
                             {dateRange?.from ? (
                                 dateRange.to ? (
                                     <>
@@ -123,16 +120,18 @@ export const DashboardHeader = ({ selectedAccountId, onAccountChange, accounts, 
                             )}
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="end">
-                        <div className="flex">
-                            <div className="p-2 border-r border-border space-y-2 min-w-[140px]">
-                                <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">Predefinidos</div>
-                                <Button variant="ghost" size="sm" className="w-full justify-start text-xs" onClick={() => handlePresetChange("last_7_days")}>Últimos 7 días</Button>
-                                <Button variant="ghost" size="sm" className="w-full justify-start text-xs" onClick={() => handlePresetChange("last_30_days")}>Últimos 30 días</Button>
-                                <Button variant="ghost" size="sm" className="w-full justify-start text-xs" onClick={() => handlePresetChange("this_month")}>Este mes</Button>
-                                <Button variant="ghost" size="sm" className="w-full justify-start text-xs" onClick={() => handlePresetChange("last_month")}>Mes pasado</Button>
-                                <Button variant="ghost" size="sm" className="w-full justify-start text-xs" onClick={() => handlePresetChange("this_year")}>Este año</Button>
-                                <div className="border-t border-border my-2"></div>
+                    <PopoverContent className="w-auto p-0 max-w-[95vw]" align="start">
+                        <div className="flex flex-col sm:flex-row">
+                            <div className="p-2 border-b sm:border-b-0 sm:border-r border-border space-y-1 sm:space-y-2 sm:min-w-[140px]">
+                                <div className="text-xs font-semibold text-muted-foreground mb-1 sm:mb-2 px-2">Predefinidos</div>
+                                <div className="flex flex-wrap sm:flex-col gap-1">
+                                    <Button variant="ghost" size="sm" className="justify-start text-xs flex-1 sm:flex-none sm:w-full" onClick={() => handlePresetChange("last_7_days")}>7 días</Button>
+                                    <Button variant="ghost" size="sm" className="justify-start text-xs flex-1 sm:flex-none sm:w-full" onClick={() => handlePresetChange("last_30_days")}>30 días</Button>
+                                    <Button variant="ghost" size="sm" className="justify-start text-xs flex-1 sm:flex-none sm:w-full" onClick={() => handlePresetChange("this_month")}>Este mes</Button>
+                                    <Button variant="ghost" size="sm" className="justify-start text-xs flex-1 sm:flex-none sm:w-full" onClick={() => handlePresetChange("last_month")}>Mes pasado</Button>
+                                    <Button variant="ghost" size="sm" className="justify-start text-xs flex-1 sm:flex-none sm:w-full" onClick={() => handlePresetChange("this_year")}>Este año</Button>
+                                </div>
+                                <div className="border-t border-border my-1 sm:my-2"></div>
                                 <Button variant="ghost" size="sm" className="w-full justify-start text-xs text-destructive hover:text-destructive" onClick={() => setDateRange(undefined)}>
                                     <X className="mr-2 h-3 w-3" /> Limpiar filtro
                                 </Button>
@@ -143,17 +142,12 @@ export const DashboardHeader = ({ selectedAccountId, onAccountChange, accounts, 
                                 defaultMonth={dateRange?.from}
                                 selected={dateRange}
                                 onSelect={setDateRange}
-                                numberOfMonths={2}
+                                numberOfMonths={1}
                                 locale={es}
                             />
                         </div>
                     </PopoverContent>
                 </Popover>
-
-                {/* Filter Icon button kept for UI consistency or future features */}
-                {/* <Button variant="outline" size="icon" className="bg-card border-border/50 text-blue-500 border-blue-500/30">
-                    <Filter className="h-4 w-4" />
-                </Button> */}
             </div>
         </div>
     );

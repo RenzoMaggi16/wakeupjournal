@@ -44,11 +44,11 @@ const TradesPage = () => {
   }, [trades, filterPar, filterStartDate, filterEndDate]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <Navbar />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold">Mis Trades</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold">Mis Trades</h1>
           <p className="text-sm text-muted-foreground mt-1">Historial de operaciones</p>
         </div>
 
@@ -86,16 +86,16 @@ const TradesPage = () => {
           </div>
         </div>
 
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Fecha</TableHead>
+                <TableHead className="whitespace-nowrap">Fecha</TableHead>
                 <TableHead>Par</TableHead>
                 <TableHead>PnL</TableHead>
-                <TableHead>Dirección</TableHead>
-                <TableHead>Cuenta</TableHead>
-                <TableHead>% Reglas</TableHead>
+                <TableHead className="hidden sm:table-cell">Dirección</TableHead>
+                <TableHead className="hidden sm:table-cell">Cuenta</TableHead>
+                <TableHead className="hidden md:table-cell">% Reglas</TableHead>
                 <TableHead className="text-center">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -118,18 +118,18 @@ const TradesPage = () => {
                   const isBuy = trade?.trade_type === "buy";
                   return (
                     <TableRow key={trade.id}>
-                      <TableCell>
-                        {trade?.entry_time ? format(new Date(trade.entry_time), "dd/MM/yyyy HH:mm") : "-"}
+                      <TableCell className="whitespace-nowrap text-xs sm:text-sm">
+                        {trade?.entry_time ? format(new Date(trade.entry_time), "dd/MM/yy HH:mm") : "-"}
                       </TableCell>
-                      <TableCell>{trade?.par ?? "-"}</TableCell>
-                      <TableCell className={pnl > 0 ? "text-green-600" : pnl < 0 ? "text-red-600" : "text-muted-foreground"}>
+                      <TableCell className="text-xs sm:text-sm">{trade?.par ?? "-"}</TableCell>
+                      <TableCell className={`text-xs sm:text-sm ${pnl > 0 ? "text-green-600" : pnl < 0 ? "text-red-600" : "text-muted-foreground"}`}>
                         {pnl.toLocaleString("es-ES", { style: "currency", currency: "USD" })}
                       </TableCell>
-                      <TableCell className={isBuy ? "text-green-600" : "text-red-600"}>
+                      <TableCell className={`hidden sm:table-cell ${isBuy ? "text-green-600" : "text-red-600"}`}>
                         {isBuy ? "Compra" : "Venta"}
                       </TableCell>
-                      <TableCell>{trade?.account_name ?? "-"}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell text-xs">{trade?.account_name ?? "-"}</TableCell>
+                      <TableCell className="hidden md:table-cell">
                         {typeof trade?.rules_compliance_pct === "number"
                           ? `${Math.round(trade.rules_compliance_pct)}%`
                           : "-"}

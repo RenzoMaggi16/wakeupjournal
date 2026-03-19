@@ -516,7 +516,7 @@ export const Dashboard = () => {
           {/* Main Grid: Left Stats + Right Calendar */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {/* Left Column */}
-            <div className="md:col-span-1 flex flex-col gap-4">
+            <div className="md:col-span-1 flex flex-col gap-4 min-w-0">
               {/* Risk Account Card */}
               {selectedAccountId && accounts.find(a => a.id === selectedAccountId) && (
                 <RiskAccountCard
@@ -631,7 +631,7 @@ export const Dashboard = () => {
                     initialCapital={accounts.find(a => a.id === selectedAccountId)?.initial_capital || 0}
                   />
                 </div>
-                <div className="md:col-span-1 md:min-h-[640px] flex flex-col space-y-4">
+                <div className="md:col-span-1 md:min-h-[640px] flex flex-col space-y-4 min-w-0">
                   <StatCard title="PNL por Semana" className="flex-1">
                     <div className="space-y-2">
                       {weeklySummaries.map((w, idx) => (
@@ -715,7 +715,7 @@ export const Dashboard = () => {
       </div>
 
       {/* Trading Plan + Balance side-by-side (full width row) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
         <div className="max-h-[700px] overflow-y-auto pr-2">
           <TradingPlanCard
             plan={plan}
