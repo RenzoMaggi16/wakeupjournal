@@ -56,7 +56,15 @@ interface Account {
 }
 
 export const Dashboard = () => {
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(() => {
+    return localStorage.getItem('dashboard-selected-account') || null;
+  });
+
+  useEffect(() => {
+    if (selectedAccountId) {
+      localStorage.setItem('dashboard-selected-account', selectedAccountId);
+    }
+  }, [selectedAccountId]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [displayMode, setDisplayMode] = useState<CalendarDisplayMode>(() => {
     const saved = localStorage.getItem('calendar-display-mode');
@@ -92,10 +100,15 @@ export const Dashboard = () => {
     },
   });
 
-  // 2. Set Default Account (First one)
+  // 2. Set Default Account (First one or all)
   useEffect(() => {
     if (!selectedAccountId && accounts.length > 0) {
-      setSelectedAccountId(accounts[0].id);
+      setSelectedAccountId('all');
+    } else if (selectedAccountId && selectedAccountId !== 'all' && accounts.length > 0) {
+      const exists = accounts.some(a => a.id === selectedAccountId);
+      if (!exists) {
+        setSelectedAccountId('all');
+      }
     }
   }, [accounts, selectedAccountId]);
 
@@ -106,12 +119,12 @@ export const Dashboard = () => {
     queryFn: async () => {
       if (!selectedAccountId) return [];
 
-      const { data, error } = await supabase
-        .from("trades")
-        .select("*")
-        .eq("account_id", selectedAccountId) // Filter by Account
-        .order("entry_time", { ascending: true });
+      let query = supabase.from("trades").select("*").order("entry_time", { ascending: true });
+      if (selectedAccountId !== "all") {
+        query = query.eq("account_id", selectedAccountId); // Filter by Account
+      }
 
+      const { data, error } = await query;
       if (error) throw error;
       return data as Trade[];
     },
@@ -124,12 +137,12 @@ export const Dashboard = () => {
     queryFn: async () => {
       if (!selectedAccountId) return [];
 
-      const { data, error } = await supabase
-        .from("payouts")
-        .select("id, payout_date, amount, account_id")
-        .eq("account_id", selectedAccountId)
-        .order("payout_date", { ascending: true });
+      let query = supabase.from("payouts").select("id, payout_date, amount, account_id").order("payout_date", { ascending: true });
+      if (selectedAccountId !== "all") {
+        query = query.eq("account_id", selectedAccountId);
+      }
 
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },
@@ -238,7 +251,9 @@ export const Dashboard = () => {
     }
 
     const bestDayName = bestDayIndex >= 0 ? format(new Date().setDate(new Date().getDate() - new Date().getDay() + bestDayIndex), 'EEEE', { locale: es }) : "N/A";
-    const capital = accounts.find(a => a.id === selectedAccountId)?.initial_capital || 1;
+    const capital = selectedAccountId === 'all'
+      ? (accounts.length > 0 ? Math.max(...accounts.map(a => a.initial_capital || 0)) : 1)
+      : (accounts.find(a => a.id === selectedAccountId)?.initial_capital || 1);
     const bestDayPercentage = bestDayIndex >= 0 ? (maxDayProfit / capital) * 100 : 0;
 
 
@@ -372,9 +387,12 @@ export const Dashboard = () => {
   }, [trades, payouts, calendarMonth]);
   // Equity Curve Data & Current Balance Calculation
   const { equityCurveData, currentBalance, highWaterMark } = useMemo(() => {
-    const selectedAccount = accounts.find(a => a.id === selectedAccountId);
-    const initialCapital = selectedAccount?.initial_capital || 0;
-    const passedAt = selectedAccount?.evaluation_passed_at;
+    let initialCapital = 0;
+    if (selectedAccountId === 'all') {
+      initialCapital = accounts.length > 0 ? Math.max(...accounts.map(a => a.initial_capital || 0)) : 0;
+    } else {
+      initialCapital = accounts.find(a => a.id === selectedAccountId)?.initial_capital || 0;
+    }
 
     if (!allTrades || allTrades.length === 0) {
       return { equityCurveData: [], currentBalance: initialCapital, highWaterMark: initialCapital };
@@ -383,9 +401,20 @@ export const Dashboard = () => {
     const sortedAllTrades = [...allTrades].sort((a, b) => new Date(a.entry_time).getTime() - new Date(b.entry_time).getTime());
 
     // For passed accounts, filter to only post-pass trades
-    const effectiveTrades = passedAt
-      ? sortedAllTrades.filter(t => new Date(t.entry_time).getTime() > new Date(passedAt).getTime())
-      : sortedAllTrades;
+    const effectiveTrades = selectedAccountId === 'all'
+      ? sortedAllTrades.filter(t => {
+          const acc = accounts.find(a => a.id === t.account_id);
+          if (acc?.evaluation_passed_at) {
+            return new Date(t.entry_time).getTime() > new Date(acc.evaluation_passed_at).getTime();
+          }
+          return true;
+        })
+      : (() => {
+          const passedAt = accounts.find(a => a.id === selectedAccountId)?.evaluation_passed_at;
+          return passedAt
+            ? sortedAllTrades.filter(t => new Date(t.entry_time).getTime() > new Date(passedAt).getTime())
+            : sortedAllTrades;
+        })();
 
     let startBalance = initialCapital;
     let filteredCurveTrades = effectiveTrades;
@@ -414,16 +443,32 @@ export const Dashboard = () => {
       };
     });
 
-    // Balance: for passed accounts, only count post-pass PnL
-    const effectivePnL = effectiveTrades.reduce((sum, t) => sum + Number(t.pnl_neto), 0);
-    // Payouts: the reset payout offsets pre-pass trades, so using all payouts is fine
-    const totalPayouts = payouts.reduce((sum, p) => sum + Number(p.amount), 0);
-    // But for passed accounts, we only count post-pass PnL directly (no reset payout needed in calc)
-    const computedBalance = passedAt
-      ? initialCapital + effectivePnL
-      : initialCapital + sortedAllTrades.reduce((sum, t) => sum + Number(t.pnl_neto), 0) - totalPayouts;
+    // Balance calculation
+    let computedBalance = initialCapital;
+    if (selectedAccountId === 'all') {
+      const globalNetPnL = accounts.reduce((sum, acc) => {
+        const passedAt = acc.evaluation_passed_at;
+        const accTrades = sortedAllTrades.filter(t => t.account_id === acc.id);
+        const accPayouts = payouts.filter(p => p.account_id === acc.id).reduce((s, p) => s + Number(p.amount), 0);
+        
+        if (passedAt) {
+          const accEffectivePnL = accTrades.filter(t => new Date(t.entry_time).getTime() > new Date(passedAt).getTime()).reduce((s, t) => s + Number(t.pnl_neto), 0);
+          return sum + accEffectivePnL;
+        } else {
+          return sum + accTrades.reduce((s, t) => s + Number(t.pnl_neto), 0) - accPayouts;
+        }
+      }, 0);
+      computedBalance = initialCapital + globalNetPnL;
+    } else {
+      const passedAt = accounts.find(a => a.id === selectedAccountId)?.evaluation_passed_at;
+      const effectivePnL = effectiveTrades.reduce((sum, t) => sum + Number(t.pnl_neto), 0);
+      const totalPayouts = payouts.reduce((sum, p) => sum + Number(p.amount), 0);
+      computedBalance = passedAt
+        ? initialCapital + effectivePnL
+        : initialCapital + sortedAllTrades.reduce((sum, t) => sum + Number(t.pnl_neto), 0) - totalPayouts;
+    }
 
-    // HWM: for accounts that passed evaluation, only count trades AFTER pass date
+    // HWM calculation
     let hwm = initialCapital;
     let runningBalance = initialCapital;
     for (const trade of effectiveTrades) {
@@ -617,7 +662,7 @@ export const Dashboard = () => {
                     trades={trades}
                     payouts={payouts}
                     displayMode={displayMode}
-                    initialCapital={accounts.find(a => a.id === selectedAccountId)?.initial_capital || 0}
+                    initialCapital={selectedAccountId === 'all' ? (accounts.length > 0 ? Math.max(...accounts.map(a => a.initial_capital || 0)) : 0) : (accounts.find(a => a.id === selectedAccountId)?.initial_capital || 0)}
                     onDayClick={(date, tradeIds) => {
                       setDayModalDate(date);
                       setDayModalTradeIds(tradeIds);
@@ -628,7 +673,7 @@ export const Dashboard = () => {
                   <DailyPerformanceStats
                     trades={trades}
                     displayMode={displayMode}
-                    initialCapital={accounts.find(a => a.id === selectedAccountId)?.initial_capital || 0}
+                    initialCapital={selectedAccountId === 'all' ? (accounts.length > 0 ? Math.max(...accounts.map(a => a.initial_capital || 0)) : 0) : (accounts.find(a => a.id === selectedAccountId)?.initial_capital || 0)}
                   />
                 </div>
                 <div className="md:col-span-1 md:min-h-[640px] flex flex-col space-y-4 min-w-0">
@@ -723,20 +768,28 @@ export const Dashboard = () => {
             onEdit={() => setIsPlanModalOpen(true)}
           />
         </div>
-        <StatCard
-          title="Balance"
-          value={
-            displayMode === 'percentage' && (accounts.find(a => a.id === selectedAccountId)?.initial_capital || 0) > 0
-              ? `${(((currentBalance - (accounts.find(a => a.id === selectedAccountId)?.initial_capital || 0)) / (accounts.find(a => a.id === selectedAccountId)?.initial_capital || 1)) * 100).toFixed(2)}%`
-              : `$${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
-          }
-          titleClassName="text-sm md:text-base font-semibold text-foreground text-center"
-          contentClassName="flex flex-col items-center justify-center gap-4 text-center"
-        >
-          <div className="min-h-[500px] md:min-h-[560px] w-full">
-            <EquityChart data={equityCurveData.map(d => ({ date: d.date, cumulativePnl: d.cumulativePnl }))} />
-          </div>
-        </StatCard>
+        {(() => {
+          const displayInitialCapital = selectedAccountId === 'all' 
+            ? (accounts.length > 0 ? Math.max(...accounts.map(a => a.initial_capital || 0)) : 0)
+            : (accounts.find(a => a.id === selectedAccountId)?.initial_capital || 0);
+            
+          return (
+            <StatCard
+              title="Balance"
+              value={
+                displayMode === 'percentage' && displayInitialCapital > 0
+                  ? `${(((currentBalance - displayInitialCapital) / (displayInitialCapital || 1)) * 100).toFixed(2)}%`
+                  : `$${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+              }
+              titleClassName="text-sm md:text-base font-semibold text-foreground text-center"
+              contentClassName="flex flex-col items-center justify-center gap-4 text-center"
+            >
+              <div className="min-h-[500px] md:min-h-[560px] w-full">
+                <EquityChart data={equityCurveData.map(d => ({ date: d.date, cumulativePnl: d.cumulativePnl }))} />
+              </div>
+            </StatCard>
+          );
+        })()}
       </div>
 
 

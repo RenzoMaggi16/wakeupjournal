@@ -70,6 +70,7 @@ export const DashboardHeader = ({ selectedAccountId, onAccountChange, accounts, 
                         <SelectValue placeholder="Seleccionar Cuenta" />
                     </SelectTrigger>
                     <SelectContent>
+                        <SelectItem value="all">🌐 Ver todo</SelectItem>
                         {accounts.map((acc) => (
                             <SelectItem key={acc.id} value={acc.id}>
                                 {acc.account_type === 'live' ? '🏦 ' : '🧪 '}

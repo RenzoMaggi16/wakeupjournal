@@ -215,7 +215,8 @@ All colors MUST be HSL.
     overflow-x: hidden;
   }
 
-  html.lenis, html.lenis body {
+  html.lenis,
+  html.lenis body {
     height: auto;
   }
 
