@@ -632,7 +632,11 @@ export const Dashboard = () => {
 
               {/* Profit Days Tracker (for live accounts with consistency rules) */}
               {selectedAccountId && (() => {
-                const acc = accounts.find(a => a.id === selectedAccountId);
+                // In "all" mode, use the riskAccountId (selected in the Risk Panel filter)
+                const targetAccountId = selectedAccountId === 'all' ? riskAccountId : selectedAccountId;
+                if (!targetAccountId) return null;
+
+                const acc = accounts.find(a => a.id === targetAccountId);
                 if (!acc || acc.account_type !== 'live' || !acc.consistency_min_profit_days || acc.consistency_min_profit_days <= 0) return null;
                 // Only count trades AFTER account was passed AND AFTER the latest payout
                 const passDateStr = acc.evaluation_passed_at
@@ -650,7 +654,9 @@ export const Dashboard = () => {
                   }
                 }
 
-                const postPassTrades = allTrades.filter(t => {
+                // Filter trades to the specific account
+                const accountTrades = allTrades.filter(t => t.account_id === acc.id);
+                const postPassTrades = accountTrades.filter(t => {
                   if (!t.entry_time) return false;
                   const tradeDateStr = t.entry_time.split('T')[0];
 
@@ -669,7 +675,7 @@ export const Dashboard = () => {
                     minProfitDays={acc.consistency_min_profit_days}
                     withdrawalPct={acc.consistency_withdrawal_pct || 100}
                     initialCapital={acc.initial_capital}
-                    currentBalance={currentBalance}
+                    currentBalance={riskData?.balance ?? currentBalance}
                   />
                 );
               })()}

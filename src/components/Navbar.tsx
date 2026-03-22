@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { TrendingUp, LogOut, BrainCircuit, Settings, LayoutDashboard, Menu, X } from "lucide-react";
+import { TrendingUp, LogOut, BrainCircuit, Settings, LayoutDashboard, Menu, X, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle } from "./ThemeToggle";
 import { Link } from "react-router-dom";
@@ -44,6 +44,12 @@ export const Navbar = () => {
               <Button variant="ghost" size="sm" className="gap-2 rounded-lg hover:bg-white/[0.06] transition-all duration-200">
                 <BrainCircuit className="h-4 w-4" />
                 Mentor IA
+              </Button>
+            </Link>
+            <Link to="/reportes">
+              <Button variant="ghost" size="sm" className="gap-2 rounded-lg hover:bg-white/[0.06] transition-all duration-200">
+                <BarChart3 className="h-4 w-4" />
+                Reportes
               </Button>
             </Link>
             <Link to="/configuracion">
@@ -93,6 +99,12 @@ export const Navbar = () => {
               <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-10 rounded-lg hover:bg-white/[0.06]">
                 <BrainCircuit className="h-4 w-4" />
                 Mentor IA
+              </Button>
+            </Link>
+            <Link to="/reportes" onClick={closeMenu}>
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-10 rounded-lg hover:bg-white/[0.06]">
+                <BarChart3 className="h-4 w-4" />
+                Reportes
               </Button>
             </Link>
             <Link to="/configuracion" onClick={closeMenu}>
