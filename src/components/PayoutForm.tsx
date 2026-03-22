@@ -146,7 +146,7 @@ export const PayoutForm = () => {
     }, [selectedAccount, trades, existingPayouts]);
 
     // Compute real balance = initial + trades PnL - payouts
-    // Umbral de retiro = capital inicial (para TODOS los tipos de cuenta)
+    // Umbral de retiro: para cuentas Live = capital inicial, para Personal = 0 (sin umbral)
     const { realBalance, withdrawalThreshold, maxWithdrawal, canWithdraw, thresholdLabel } = useMemo(() => {
         if (!selectedAccount) {
             return { realBalance: 0, withdrawalThreshold: 0, maxWithdrawal: 0, canWithdraw: false, thresholdLabel: '' };
@@ -157,21 +157,25 @@ export const PayoutForm = () => {
         const totalPayouts = existingPayouts.reduce((sum: number, p: any) => sum + Number(p.amount ?? 0), 0);
         const balance = initial + totalPnL - totalPayouts;
 
-        // Umbral siempre es el capital inicial
-        const threshold = initial;
-        const label = `Capital Inicial ($${initial.toLocaleString('en-US', { minimumFractionDigits: 0 })})`;
+        // Personal accounts: no threshold (can withdraw any positive balance)
+        // Live accounts: threshold is initial capital (can only withdraw profit above initial)
+        const isPersonal = selectedAccount.account_type === 'personal';
+        const threshold = isPersonal ? 0 : initial;
+        const label = isPersonal
+            ? 'Sin umbral (cuenta personal)'
+            : `Capital Inicial ($${initial.toLocaleString('en-US', { minimumFractionDigits: 0 })})`;
 
         let max = Math.max(0, balance - threshold);
 
-        // Apply consistency rule: limit max withdrawal to % of profit
-        if (profitDaysInfo && profitDaysInfo.withdrawalPct < 100) {
+        // Apply consistency rule: limit max withdrawal to % of profit (only for live accounts)
+        if (!isPersonal && profitDaysInfo && profitDaysInfo.withdrawalPct < 100) {
             const profitAmount = balance - initial;
             const allowedByPct = Math.max(0, profitAmount * (profitDaysInfo.withdrawalPct / 100));
             max = Math.min(max, allowedByPct);
         }
 
-        // If consistency rule not met, block withdrawals
-        const consistencyBlocked = profitDaysInfo && !profitDaysInfo.isCompleted;
+        // If consistency rule not met, block withdrawals (only for live accounts)
+        const consistencyBlocked = !isPersonal && profitDaysInfo && !profitDaysInfo.isCompleted;
         const eligible = balance > threshold && !consistencyBlocked;
 
         return {
