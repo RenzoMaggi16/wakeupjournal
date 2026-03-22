@@ -113,6 +113,9 @@ const AdvancedReports = () => {
     fontSize: '12px',
   };
 
+  const chartLabelStyle = { color: '#e5e7eb', fontWeight: 500 };
+  const chartItemStyle = { color: '#e5e7eb' };
+
   // Direction chart data
   const directionData = useMemo(() => {
     if (!stats) return [];
@@ -332,6 +335,8 @@ const AdvancedReports = () => {
                           </Pie>
                           <Tooltip
                             contentStyle={chartTooltipStyle}
+                            labelStyle={chartLabelStyle}
+                            itemStyle={chartItemStyle}
                             formatter={(value: number, name: string) => [
                               `${value} trades`,
                               name,
@@ -391,6 +396,8 @@ const AdvancedReports = () => {
                             </Pie>
                             <Tooltip
                               contentStyle={chartTooltipStyle}
+                              labelStyle={chartLabelStyle}
+                              itemStyle={chartItemStyle}
                               formatter={(value: number, name: string) => [
                                 `${value} trades`,
                                 name,
@@ -446,6 +453,8 @@ const AdvancedReports = () => {
                             </Pie>
                             <Tooltip
                               contentStyle={chartTooltipStyle}
+                              labelStyle={chartLabelStyle}
+                              itemStyle={chartItemStyle}
                               formatter={(value: number, name: string) => [
                                 `${value} días`,
                                 name,
@@ -498,6 +507,8 @@ const AdvancedReports = () => {
                       <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
                       <Tooltip
                         contentStyle={chartTooltipStyle}
+                        labelStyle={chartLabelStyle}
+                        itemStyle={chartItemStyle}
                         formatter={(value: number) => [`${value} trades`, 'Cantidad']}
                       />
                       <Bar dataKey="count" radius={[4, 4, 0, 0]}>
@@ -527,6 +538,8 @@ const AdvancedReports = () => {
                       />
                       <Tooltip
                         contentStyle={chartTooltipStyle}
+                        labelStyle={chartLabelStyle}
+                        itemStyle={chartItemStyle}
                         formatter={(value: number) => [`${value.toFixed(1)}%`, 'Win Rate']}
                       />
                       <Bar dataKey="winRate" radius={[4, 4, 0, 0]}>
@@ -571,6 +584,8 @@ const AdvancedReports = () => {
                       <YAxis tick={{ fontSize: 10 }} />
                       <Tooltip
                         contentStyle={chartTooltipStyle}
+                        labelStyle={chartLabelStyle}
+                        itemStyle={chartItemStyle}
                         formatter={(value: number) => [`$${value.toFixed(2)}`, 'PnL Acumulado']}
                       />
                       <Area
@@ -601,6 +616,8 @@ const AdvancedReports = () => {
                       <YAxis tick={{ fontSize: 10 }} />
                       <Tooltip
                         contentStyle={chartTooltipStyle}
+                        labelStyle={chartLabelStyle}
+                        itemStyle={chartItemStyle}
                         formatter={(value: number) => [`$${Number(value).toFixed(2)}`, 'PnL']}
                       />
                       <Bar dataKey="pnl" radius={[3, 3, 0, 0]}>
@@ -665,6 +682,8 @@ const AdvancedReports = () => {
                       <YAxis tick={{ fontSize: 10 }} />
                       <Tooltip
                         contentStyle={chartTooltipStyle}
+                        labelStyle={chartLabelStyle}
+                        itemStyle={chartItemStyle}
                         formatter={(value: number, name: string) => [
                           `$${value.toFixed(2)}`,
                           name === 'amount' ? 'Retiro' : 'Acumulado',

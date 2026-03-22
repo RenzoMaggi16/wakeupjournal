@@ -41,7 +41,7 @@ export const ReportStatCard = ({
     >
       <Card
         className={cn(
-          'group relative overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg h-full',
+          'group relative transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg h-full',
           className
         )}
       >

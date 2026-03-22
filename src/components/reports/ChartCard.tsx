@@ -31,7 +31,7 @@ export const ChartCard = ({
         ease: [0.25, 0.46, 0.45, 0.94],
       }}
     >
-      <Card className={cn('relative overflow-hidden', className)}>
+      <Card className={cn('relative', className)}>
         {/* Gradient accent line */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
 
