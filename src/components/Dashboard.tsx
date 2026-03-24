@@ -356,7 +356,7 @@ export const Dashboard = () => {
       cur.trades.push(t);
       byWeek.set(key, cur);
     });
-    const weeklySummaries = Array.from(byWeek.values()).sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime()).map(w => {
+    const weeklySummaries = Array.from(byWeek.values()).sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime()).map((w, idx) => {
       const end = endOfWeek(w.weekStart, { weekStartsOn: 0 });
       const weekDayPnls = groupByDay(w.trades);
       let weekWinDays = 0;
@@ -367,10 +367,12 @@ export const Dashboard = () => {
       });
       const weekNonBE = weekWinDays + weekLossDays;
       const wr = weekNonBE > 0 ? (weekWinDays / weekNonBE) * 100 : 0;
+      const tradingDays = weekDayPnls.size;
       return {
-        label: `${format(w.weekStart, 'd MMM', { locale: es })} - ${format(end, 'd MMM', { locale: es })}`,
+        label: `Semana ${idx + 1}`,
         pnl: w.pnl,
         winRate: wr,
+        tradingDays,
       };
     });
 
@@ -736,17 +738,60 @@ export const Dashboard = () => {
                 <div className="md:col-span-1 md:min-h-[640px] flex flex-col space-y-4 min-w-0">
                   <StatCard title="PNL por Semana" className="flex-1">
                     <div className="space-y-2">
-                      {weeklySummaries.map((w, idx) => (
-                        <div key={idx} className="flex items-center justify-between rounded-md border border-border/40 px-4 py-3">
-                          <div className="text-sm text-muted-foreground">{w.label}</div>
-                          <div className="flex items-center gap-3">
-                            <span className={`text-lg font-semibold ${w.pnl >= 0 ? 'text-[var(--profit-color)]' : 'text-[var(--loss-color)]'}`}>
-                              ${Math.abs(w.pnl).toFixed(2)}
-                            </span>
-                            <span className="text-sm font-medium">{w.winRate.toFixed(0)}%</span>
+                      {weeklySummaries.map((w, idx) => {
+                        const isPosWeek = w.pnl >= 0;
+                        const absVal = Math.abs(w.pnl);
+                        const pnlStr = absVal >= 1000 ? `$${(absVal / 1000).toFixed(1)}K` : `$${absVal.toFixed(0)}`;
+                        return (
+                          <div
+                            key={idx}
+                            className="rounded-lg border border-border/30 bg-card/60 overflow-hidden"
+                            style={{
+                              animationDelay: `${idx * 80}ms`,
+                              animation: 'calendarCellFadeIn 0.3s ease-out both',
+                            }}
+                          >
+                            <div className="flex items-stretch">
+                              {/* Accent border */}
+                              <div
+                                className="w-1 shrink-0 rounded-l-lg"
+                                style={{
+                                  backgroundColor: w.tradingDays > 0
+                                    ? (isPosWeek ? 'rgb(16, 185, 129)' : 'rgb(239, 68, 68)')
+                                    : 'rgb(64, 64, 64)',
+                                  boxShadow: w.tradingDays > 0
+                                    ? (isPosWeek ? '0 0 8px rgba(16, 185, 129, 0.3)' : '0 0 8px rgba(239, 68, 68, 0.3)')
+                                    : 'none',
+                                }}
+                              />
+                              <div className="flex items-center justify-between flex-1 px-3 py-2.5">
+                                <div className="flex flex-col">
+                                  <span className="text-xs font-semibold text-foreground">{w.label}</span>
+                                  <span className="text-[10px] text-muted-foreground flex gap-1.5 items-center">
+                                    <span>{w.tradingDays} {w.tradingDays === 1 ? 'día' : 'días'}</span>
+                                    {w.tradingDays > 0 && (
+                                      <>
+                                        <span className="w-1 h-1 rounded-full bg-border"></span>
+                                        <span>{w.winRate.toFixed(0)}% WR</span>
+                                      </>
+                                    )}
+                                  </span>
+                                </div>
+                                <span
+                                  className={`text-base font-bold ${isPosWeek ? 'text-emerald-400' : 'text-red-400'}`}
+                                  style={{
+                                    textShadow: w.tradingDays > 0
+                                      ? (isPosWeek ? '0 0 8px rgba(16, 185, 129, 0.25)' : '0 0 8px rgba(239, 68, 68, 0.25)')
+                                      : 'none',
+                                  }}
+                                >
+                                  {w.tradingDays > 0 ? (isPosWeek ? '+' : '-') : ''}{pnlStr}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       {weeklySummaries.length === 0 && (
                         <div className="text-xs text-muted-foreground">Sin datos en el mes seleccionado</div>
                       )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, isThisMonth } from "date-fns";
@@ -23,6 +23,7 @@ interface DayPnL {
   date: Date;
   pnl: number;
   tradeCount: number;
+  winCount: number;
   payoutAmount: number;
 }
 
@@ -39,7 +40,14 @@ interface PnLCalendarProps {
 
 export const PnLCalendar = ({ trades = [], payouts = [], displayMode = 'dollars', initialCapital = 0, onDayClick, onMonthChange, controlledMonth, embedded = false }: PnLCalendarProps) => {
   const [currentMonth, setCurrentMonth] = useState(controlledMonth || new Date());
-  const [dailyPnL, setDailyPnL] = useState<DayPnL[]>([]);
+
+  const animateRef = useRef(true);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      animateRef.current = false;
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Sync with controlled month from parent (CalendarContainer)
   useEffect(() => {
@@ -48,15 +56,13 @@ export const PnLCalendar = ({ trades = [], payouts = [], displayMode = 'dollars'
     }
   }, [controlledMonth]);
 
-  // Internal query removed in favor of passed props
-
-  useEffect(() => {
-    // Calcular el PnL diario
+  // Memoized daily PnL calculation
+  const dailyPnL = useMemo(() => {
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
     const days = eachDayOfInterval({ start, end });
 
-    const pnlByDay = days.map(day => {
+    return days.map(day => {
       const dayTrades = trades.filter(trade =>
         isSameDay(new Date(trade.entry_time), day)
       );
@@ -65,6 +71,8 @@ export const PnLCalendar = ({ trades = [], payouts = [], displayMode = 'dollars'
         (sum, trade) => sum + Number(trade.pnl_neto),
         0
       );
+
+      const winCount = dayTrades.filter(t => Number(t.pnl_neto) > 0).length;
 
       const dayPayouts = payouts.filter(p =>
         isSameDay(new Date(p.payout_date), day)
@@ -78,11 +86,10 @@ export const PnLCalendar = ({ trades = [], payouts = [], displayMode = 'dollars'
         date: day,
         pnl: totalPnL,
         tradeCount: dayTrades.length,
+        winCount,
         payoutAmount: totalPayout,
       };
     });
-
-    setDailyPnL(pnlByDay);
   }, [trades, payouts, currentMonth]);
 
   const goToPreviousMonth = () => {
@@ -99,10 +106,140 @@ export const PnLCalendar = ({ trades = [], payouts = [], displayMode = 'dollars'
     onMonthChange?.(nextMonth);
   };
 
-  const hasTrade = (day: Date) => {
-    const dayPnL = dailyPnL.find(d => isSameDay(d.date, day));
-    return dayPnL && dayPnL.pnl !== 0;
-  };
+  const DayContent = useCallback((props: any) => {
+              const date = props.date;
+              const dayPnL = dailyPnL.find(d => isSameDay(d.date, date));
+              const hasTrades = dayPnL && dayPnL.tradeCount > 0;
+              const isProfitable = hasTrades && dayPnL.pnl > 0;
+              const isLoss = hasTrades && dayPnL.pnl < 0;
+              const isNeutral = hasTrades && dayPnL.pnl === 0;
+              const isCurrentDay = isToday(date);
+              const hasPayout = dayPnL && dayPnL.payoutAmount > 0;
+
+              // Winrate
+              const winRate = hasTrades && dayPnL.tradeCount > 0
+                ? ((dayPnL.winCount / dayPnL.tradeCount) * 100)
+                : 0;
+
+              // PnL display value
+              const pnlDisplay = (() => {
+                if (!hasTrades) return '';
+                if (displayMode === 'percentage' && initialCapital > 0) {
+                  return `${((dayPnL.pnl / initialCapital) * 100).toFixed(1)}%`;
+                }
+                const absVal = Math.abs(dayPnL.pnl);
+                if (absVal >= 1000) {
+                  return `$${(absVal / 1000).toFixed(1)}K`;
+                }
+                return `$${absVal.toFixed(0)}`;
+              })();
+
+              // Border + glow styles
+              let borderStyle = "border border-border/40";
+              let glowStyle = {};
+
+              if (hasPayout && !hasTrades) {
+                borderStyle = "border border-violet-500/50";
+              } else if (isProfitable) {
+                borderStyle = "border border-emerald-500/30";
+                glowStyle = { boxShadow: '0 0 12px rgba(16, 185, 129, 0.12), inset 0 0 16px rgba(16, 185, 129, 0.06)' };
+              } else if (isLoss) {
+                borderStyle = "border border-red-500/30";
+                glowStyle = { boxShadow: '0 0 12px rgba(239, 68, 68, 0.12), inset 0 0 16px rgba(239, 68, 68, 0.06)' };
+              } else if (isNeutral) {
+                borderStyle = "border border-neutral-600/30";
+              }
+
+              const bgClass = hasTrades
+                ? (isProfitable ? 'bg-calendar-profit' : isLoss ? 'bg-calendar-loss' : 'bg-neutral-800/50')
+                : hasPayout ? 'bg-violet-500/5' : 'bg-card/60';
+
+              const handleDayClick = () => {
+                if (onDayClick && hasTrades) {
+                  const dayTradeIds = trades
+                    .filter(t => isSameDay(new Date(t.entry_time), date))
+                    .map(t => t.id);
+                  onDayClick(date, dayTradeIds);
+                }
+              };
+
+              const animateClass = animateRef.current ? 'calendar-cell-animate' : '';
+              const animDelay = animateRef.current ? `${date.getDate() * 15}ms` : '0ms';
+
+              return (
+                <div
+                  className={`rounded-lg ${borderStyle} relative flex flex-col items-center justify-center p-0.5 md:p-1.5 h-16 md:h-[7.2rem] w-full ${bgClass} ${animateClass} ${hasTrades ? 'cursor-pointer group' : ''}`}
+                  style={{
+                    ...glowStyle,
+                    animationDelay: animDelay,
+                  }}
+                  onClick={handleDayClick}
+                >
+                  {/* Day number — top-left */}
+                  <div className="absolute top-0.5 left-1 md:top-1 md:left-1.5">
+                    {isCurrentDay ? (
+                      <span className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-4 h-4 md:w-5 md:h-5 text-[8px] md:text-[10px] font-bold shadow-[0_0_8px_rgba(139,92,246,0.3)]">
+                        {format(date, "d")}
+                      </span>
+                    ) : (
+                      <span className="text-[8px] md:text-[10px] text-muted-foreground/60 font-medium">
+                        {format(date, "d")}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Main content */}
+                  <div className="flex flex-col items-center justify-center gap-0 mt-1">
+                    {hasTrades ? (
+                      <>
+                        {/* PnL — MAIN FOCUS */}
+                        <span
+                          className={`text-sm md:text-lg font-bold leading-tight ${
+                            isProfitable
+                              ? 'text-emerald-400'
+                              : isLoss
+                                ? 'text-red-400'
+                                : 'text-neutral-400'
+                          }`}
+                          style={
+                            isProfitable
+                              ? { textShadow: '0 0 10px rgba(16, 185, 129, 0.3)' }
+                              : isLoss
+                                ? { textShadow: '0 0 10px rgba(239, 68, 68, 0.3)' }
+                                : {}
+                          }
+                        >
+                          {isLoss ? '-' : isProfitable ? '+' : ''}{pnlDisplay}
+                        </span>
+
+                        {/* Trades count */}
+                        <span className="text-[7px] md:text-[9px] text-muted-foreground/70 font-medium mt-0.5">
+                          {dayPnL.tradeCount} {dayPnL.tradeCount === 1 ? 'trade' : 'trades'}
+                        </span>
+
+                        {/* Winrate */}
+                        <span className={`text-[7px] md:text-[9px] font-medium ${
+                          winRate >= 50 ? 'text-emerald-500/60' : 'text-red-400/50'
+                        }`}>
+                          {winRate.toFixed(0)}%
+                        </span>
+                      </>
+                    ) : null}
+
+                    {/* Payout badge */}
+                    {hasPayout && (
+                      <div className="absolute bottom-0.5 right-1 md:bottom-1 md:right-1.5">
+                        <span className="text-[7px] md:text-[9px] font-semibold text-violet-400">
+                          💸 -${dayPnL!.payoutAmount.toFixed(0)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+  }, [dailyPnL, displayMode, initialCapital, trades, onDayClick]);
+
+  const components = useMemo(() => ({ DayContent }), [DayContent]);
 
   const calendarContent = (
       <div className={embedded ? '' : undefined}>
@@ -121,88 +258,13 @@ export const PnLCalendar = ({ trades = [], payouts = [], displayMode = 'dollars'
             nav: embedded ? "hidden" : undefined,
             head_row: "flex w-full",
             head_cell: "text-primary font-medium text-xs uppercase text-center flex-1",
-            row: "flex w-full mt-2 gap-1", // Añadido gap-1 para aumentar ligeramente la separación
-            cell: "flex-1 relative p-0 mx-0.2", // Añadido mx-0.5 para aumentar la separación horizontal
+            row: "flex w-full mt-1.5 gap-1",
+            cell: "flex-1 relative p-0 mx-0.2",
             day: "h-full w-full p-0 font-normal",
             day_today: "",
             day_outside: "day-outside",
           }}
-          components={{
-            DayContent: (props) => {
-              const date = props.date;
-              const dayPnL = dailyPnL.find(d => isSameDay(d.date, date));
-              const hasTrades = dayPnL && dayPnL.tradeCount > 0;
-              const isProfitable = hasTrades && dayPnL.pnl > 0;
-              const isLoss = hasTrades && dayPnL.pnl < 0;
-              const isNeutral = hasTrades && dayPnL.pnl === 0;
-              const isCurrentDay = isToday(date);
-              const isCurrentMonth = isThisMonth(date);
-              const hasPayout = dayPnL && dayPnL.payoutAmount > 0;
-
-              // Determinar los estilos condicionales
-              let borderClass = "border border-border";
-
-              if (hasPayout && !hasTrades) {
-                borderClass = "border border-violet-500";
-              } else if (isProfitable) {
-                borderClass = "border border-profit-custom";
-              } else if (isLoss) {
-                borderClass = "border border-loss-custom";
-              } else if (isNeutral) {
-                borderClass = "border border-neutral-500";
-              }
-
-              const bgClass = hasTrades
-                ? (isProfitable ? 'bg-calendar-profit' : isLoss ? 'bg-calendar-loss' : 'bg-neutral-800')
-                : hasPayout ? 'bg-violet-500/10' : 'bg-card';
-
-              const handleDayClick = () => {
-                if (onDayClick && hasTrades) {
-                  const dayTradeIds = trades
-                    .filter(t => isSameDay(new Date(t.entry_time), date))
-                    .map(t => t.id);
-                  onDayClick(date, dayTradeIds);
-                }
-              };
-
-              return (
-                <div
-                  className={`rounded-lg ${borderClass} relative flex items-center justify-center flex-col p-0.5 md:p-1 h-14 md:h-24 w-full ${bgClass} ${hasTrades ? 'cursor-pointer hover:scale-[1.03] hover:ring-1 hover:ring-primary/40 transition-all duration-200' : 'transition-all duration-200'}`}
-                  onClick={handleDayClick}
-                >
-                  {/* Número del día en la esquina superior derecha */}
-                  <div className="absolute top-0.5 right-0.5 md:top-1 md:right-1">
-                    {isCurrentDay ? (
-                      <span className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-4 h-4 md:w-5 md:h-5 text-[9px] md:text-xs shadow-[0_0_8px_rgba(139,92,246,0.3)]">
-                        {format(date, "d")}
-                      </span>
-                    ) : (
-                      <span className="text-[9px] md:text-xs text-primary/70">
-                        {format(date, "d")}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Contenido del PnL */}
-                  <div className="flex flex-col items-center justify-center gap-0">
-                    {hasTrades ? (
-                      <span className={`text-[10px] md:text-sm font-medium ${isNeutral ? 'text-neutral-300' : ''}`}>
-                        {displayMode === 'percentage' && initialCapital > 0
-                          ? `${((dayPnL.pnl / initialCapital) * 100).toFixed(1)}%`
-                          : `$${Math.abs(dayPnL.pnl).toFixed(0)}`
-                        }
-                      </span>
-                    ) : null}
-                    {hasPayout && (
-                      <span className="text-[8px] md:text-[10px] font-semibold text-violet-400">
-                        💸 -${dayPnL!.payoutAmount.toFixed(0)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            }
-          }}
+          components={components}
         />
         </CardContent>
       </div>
