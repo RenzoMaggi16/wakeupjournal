@@ -6,6 +6,9 @@
  */
 
 import { useEffect, useState, useMemo } from 'react';
+import { parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { useDateRangeContext } from '@/context/DateRangeContext';
+import { DateRangeFilter } from '@/components/shared/DateRangeFilter';
 import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/Navbar';
 import { BackToDashboard } from '@/components/BackToDashboard';
@@ -42,9 +45,10 @@ import {
 } from 'recharts';
 
 const AdvancedReports = () => {
-  const [trades, setTrades] = useState<TradeForStats[]>([]);
-  const [payouts, setPayouts] = useState<PayoutData[]>([]);
+  const [allTrades, setAllTrades] = useState<TradeForStats[]>([]);
+  const [allPayouts, setAllPayouts] = useState<PayoutData[]>([]);
   const [loading, setLoading] = useState(true);
+  const { dateRange, setDateRange } = useDateRangeContext();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,7 +69,7 @@ const AdvancedReports = () => {
           .order('entry_time', { ascending: true });
 
         if (tradesError) throw tradesError;
-        setTrades(
+        setAllTrades(
           ((tradesData || []) as TradeForStats[]).filter((t) => t.entry_time)
         );
 
@@ -77,7 +81,7 @@ const AdvancedReports = () => {
           .order('payout_date', { ascending: true });
 
         if (payoutsError) throw payoutsError;
-        setPayouts((payoutsData || []) as PayoutData[]);
+        setAllPayouts((payoutsData || []) as PayoutData[]);
       } catch (err) {
         console.error('Error fetching data for advanced reports:', err);
       } finally {
@@ -88,7 +92,34 @@ const AdvancedReports = () => {
     fetchData();
   }, []);
 
+  // Filter trades by shared date range
+  const trades = useMemo(() => {
+    if (!dateRange || !dateRange.from) return allTrades;
+    const from = startOfDay(dateRange.from);
+    const to = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+    return allTrades.filter((t) => {
+      if (!t.entry_time) return false;
+      const tradeDate = parseISO(t.entry_time);
+      return isWithinInterval(tradeDate, { start: from, end: to });
+    });
+  }, [allTrades, dateRange]);
+
+  // Filter payouts by shared date range
+  const payouts = useMemo(() => {
+    if (!dateRange || !dateRange.from) return allPayouts;
+    const from = startOfDay(dateRange.from);
+    const to = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+    return allPayouts.filter((p) => {
+      if (!p.payout_date) return false;
+      const payoutDate = parseISO(p.payout_date);
+      return isWithinInterval(payoutDate, { start: from, end: to });
+    });
+  }, [allPayouts, dateRange]);
+
   const stats = useAdvancedTradeStats(trades);
+
+  // Flag: have data overall but not in selected period
+  const hasDataButFiltered = allTrades.length > 0 && trades.length === 0 && dateRange?.from;
 
   // Payout data
   const payoutChartData = useMemo(
@@ -171,29 +202,56 @@ const AdvancedReports = () => {
       <main className="container mx-auto px-4 py-8 max-w-7xl space-y-8">
         <BackToDashboard />
 
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold mb-1">Reportes</h1>
-          <p className="text-muted-foreground">
-            Análisis detallado de rendimiento, disciplina, retiros y comportamiento.
-          </p>
+        {/* Header + Date Filter */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-1">Reportes</h1>
+            <p className="text-muted-foreground">
+              Análisis detallado de rendimiento, disciplina, retiros y comportamiento.
+            </p>
+          </div>
+          <DateRangeFilter dateRange={dateRange} setDateRange={setDateRange} />
         </div>
 
-        {!stats ? (
+        {/* Empty state: no data at all */}
+        {!stats && !hasDataButFiltered ? (
           <div className="text-center py-16 text-muted-foreground">
             <p className="text-lg">No hay operaciones registradas aún.</p>
             <p className="text-sm mt-1">Registra trades para ver las estadísticas.</p>
+          </div>
+        ) : hasDataButFiltered ? (
+          /* Empty state: data exists but not in selected range */
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/20 mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <p className="text-lg text-muted-foreground">No hay datos para este periodo</p>
+            <p className="text-sm text-muted-foreground/70 mt-1 mb-4">Intenta seleccionar un rango de fechas diferente.</p>
+            <button
+              onClick={() => setDateRange(undefined)}
+              className="px-4 py-2 text-sm font-medium rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+            >
+              Limpiar filtro
+            </button>
           </div>
         ) : (
           <>
             {/* ─── 1. Top Stats ──────────────────────────────── */}
             <StatGrid title="📊 Estadísticas Generales" columns={4}>
               <ReportStatCard
+                title="Días Positivos"
+                tooltip="Porcentaje de días operados que cerraron con ganancia neta positiva."
+                value={`${stats.consistencyPct.toFixed(1)}%`}
+                subtext={`${stats.profitDays} de ${stats.profitDays + stats.lossDays + stats.breakEvenDays} días`}
+                valueColor={stats.consistencyPct > 50 ? 'positive' : stats.consistencyPct >= 40 ? 'neutral' : 'negative'}
+                animationDelay={0}
+              />
+              <ReportStatCard
                 title="Día Más Activo"
                 tooltip="El día de la semana en el que realizas más operaciones."
                 value={stats.mostActiveDay}
                 subtext={`${stats.mostActiveDayCount} operaciones`}
-                animationDelay={0}
+                animationDelay={0.05}
               />
               <ReportStatCard
                 title="Día Más Rentable"
@@ -201,7 +259,7 @@ const AdvancedReports = () => {
                 value={stats.mostProfitableDay}
                 subtext={`$${stats.mostProfitableDayPnl.toFixed(2)}`}
                 valueColor={stats.mostProfitableDayPnl >= 0 ? 'positive' : 'negative'}
-                animationDelay={0.05}
+                animationDelay={0.1}
               />
               <ReportStatCard
                 title="Día Menos Rentable"
@@ -209,33 +267,33 @@ const AdvancedReports = () => {
                 value={stats.leastProfitableDay}
                 subtext={`$${stats.leastProfitableDayPnl.toFixed(2)}`}
                 valueColor={stats.leastProfitableDayPnl >= 0 ? 'positive' : 'negative'}
-                animationDelay={0.1}
+                animationDelay={0.15}
               />
               <ReportStatCard
                 title="Total de Operaciones"
                 tooltip="Número total de trades registrados."
                 value={stats.totalTrades}
-                animationDelay={0.15}
+                animationDelay={0.2}
               />
               <ReportStatCard
                 title="Duración Promedio"
                 tooltip="Duración promedio de todas las operaciones."
                 value={formatDuration(stats.avgTradeDurationMinutes)}
-                animationDelay={0.2}
+                animationDelay={0.25}
               />
               <ReportStatCard
                 title="Duración Promedio (Win)"
                 tooltip="Duración promedio de las operaciones ganadoras."
                 value={formatDuration(stats.avgWinDurationMinutes)}
                 valueColor="positive"
-                animationDelay={0.25}
+                animationDelay={0.3}
               />
               <ReportStatCard
                 title="Duración Promedio (Loss)"
                 tooltip="Duración promedio de las operaciones perdedoras."
                 value={formatDuration(stats.avgLossDurationMinutes)}
                 valueColor="negative"
-                animationDelay={0.3}
+                animationDelay={0.35}
               />
             </StatGrid>
 

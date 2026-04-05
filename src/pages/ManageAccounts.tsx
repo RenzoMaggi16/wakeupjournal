@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Plus, Pencil, Trash2, Wallet, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { FUNDING_FIRM_LIST, getFirmLabel, type FundingFirmId } from "@/utils/firmConfig";
+import { getFirmsByMarket, getFirmLabel, marketHasFirms, type FundingFirmId } from "@/utils/firmConfig";
 
 // Usar tipos de Supabase
 type Account = Tables<'accounts'>;
@@ -22,15 +22,15 @@ interface FormData {
   account_name: string;
   account_type: 'personal' | 'evaluation' | 'live';
   asset_class: 'futures' | 'forex' | 'crypto' | 'stocks' | 'other';
-  initial_capital: number;
+  initial_capital: string;
   funding_company: string;
   funding_firm_id: FundingFirmId | '';
   funding_phases: number; // 1 o 2 para evaluación
-  funding_target_1: number; // objetivo fase 1
-  funding_target_2: number; // objetivo fase 2 (opcional)
+  funding_target_1: string; // objetivo fase 1
+  funding_target_2: string; // objetivo fase 2 (opcional)
   drawdown_type: 'fixed' | 'trailing';
-  drawdown_amount: number;
-  profit_target: number;
+  drawdown_amount: string;
+  profit_target: string;
   has_consistency: boolean;
   consistency_min_profit_days: number;
   consistency_withdrawal_pct: number;
@@ -45,15 +45,15 @@ const ManageAccounts = () => {
     account_name: '',
     account_type: 'personal',
     asset_class: 'futures',
-    initial_capital: 0,
+    initial_capital: '',
     funding_company: '',
     funding_firm_id: '',
     funding_phases: 1,
-    funding_target_1: 0,
-    funding_target_2: 0,
+    funding_target_1: '',
+    funding_target_2: '',
     drawdown_type: 'trailing',
-    drawdown_amount: 0,
-    profit_target: 0,
+    drawdown_amount: '',
+    profit_target: '',
     has_consistency: false,
     consistency_min_profit_days: 5,
     consistency_withdrawal_pct: 50,
@@ -100,15 +100,15 @@ const ManageAccounts = () => {
       account_name: '',
       account_type: 'personal',
       asset_class: 'futures',
-      initial_capital: 0,
+      initial_capital: '',
       funding_company: '',
       funding_firm_id: '',
       funding_phases: 1,
-      funding_target_1: 0,
-      funding_target_2: 0,
+      funding_target_1: '',
+      funding_target_2: '',
       drawdown_type: 'trailing',
-      drawdown_amount: 0,
-      profit_target: 0,
+      drawdown_amount: '',
+      profit_target: '',
       has_consistency: false,
       consistency_min_profit_days: 5,
       consistency_withdrawal_pct: 50,
@@ -122,15 +122,15 @@ const ManageAccounts = () => {
         account_name: account.account_name,
         account_type: account.account_type,
         asset_class: account.asset_class,
-        initial_capital: account.initial_capital,
+        initial_capital: account.initial_capital ? account.initial_capital.toString() : '',
         funding_company: account.funding_company || '',
         funding_firm_id: (account as any).funding_firm_id || '',
         funding_phases: account.funding_phases || 1,
-        funding_target_1: account.funding_target_1 || 0,
-        funding_target_2: account.funding_target_2 || 0,
+        funding_target_1: account.funding_target_1 ? account.funding_target_1.toString() : '',
+        funding_target_2: account.funding_target_2 ? account.funding_target_2.toString() : '',
         drawdown_type: account.drawdown_type || 'trailing',
-        drawdown_amount: account.drawdown_amount || 0,
-        profit_target: account.profit_target || 0,
+        drawdown_amount: account.drawdown_amount ? account.drawdown_amount.toString() : '',
+        profit_target: account.profit_target ? account.profit_target.toString() : '',
         has_consistency: !!(account.consistency_min_profit_days && account.consistency_min_profit_days > 0),
         consistency_min_profit_days: account.consistency_min_profit_days || 5,
         consistency_withdrawal_pct: account.consistency_withdrawal_pct || 50,
@@ -157,7 +157,8 @@ const ManageAccounts = () => {
         return;
       }
 
-      if (formData.initial_capital <= 0) {
+      const parsedCapital = parseFloat(formData.initial_capital);
+      if (!parsedCapital || parsedCapital <= 0) {
         toast.error("El capital inicial debe ser mayor a 0");
         return;
       }
@@ -171,22 +172,26 @@ const ManageAccounts = () => {
           toast.error("Selecciona 1 o 2 fases");
           return;
         }
-        if (formData.funding_target_1 <= 0) {
+        const parsedT1 = parseFloat(formData.funding_target_1);
+        if (!parsedT1 || parsedT1 <= 0) {
           toast.error("Objetivo Fase 1 debe ser mayor a 0");
           return;
         }
-        if (formData.funding_phases === 2 && formData.funding_target_2 <= 0) {
-          toast.error("Objetivo Fase 2 debe ser mayor a 0");
-          return;
+        if (formData.funding_phases === 2) {
+          const parsedT2 = parseFloat(formData.funding_target_2);
+          if (!parsedT2 || parsedT2 <= 0) {
+            toast.error("Objetivo Fase 2 debe ser mayor a 0");
+            return;
+          }
         }
       }
 
       if (formData.account_type === 'live') {
-        if (formData.asset_class === 'futures' && !formData.funding_firm_id) {
+        if (marketHasFirms(formData.asset_class) && !formData.funding_firm_id) {
           toast.error("Selecciona una empresa de fondeo");
           return;
         }
-        if (formData.asset_class !== 'futures' && !formData.funding_company.trim()) {
+        if (!marketHasFirms(formData.asset_class) && !formData.funding_company.trim()) {
           toast.error("La empresa de funding es requerida para Live");
           return;
         }
@@ -204,11 +209,17 @@ const ManageAccounts = () => {
         : formData.funding_company.trim() || null;
 
       // Datos comunes del formulario (sin user_id)
+      const pInitCap = parseFloat(formData.initial_capital) || 0;
+      const pDrawdown = parseFloat(formData.drawdown_amount) || 0;
+      const pProfitTarget = parseFloat(formData.profit_target) || 0;
+      const pTarget1 = parseFloat(formData.funding_target_1) || 0;
+      const pTarget2 = parseFloat(formData.funding_target_2) || 0;
+
       const formFields = {
         account_name: formData.account_name.trim(),
         account_type: formData.account_type,
         asset_class: formData.asset_class,
-        initial_capital: formData.initial_capital,
+        initial_capital: pInitCap,
         funding_company: formData.account_type !== 'personal'
           ? resolvedFundingCompany
           : null,
@@ -216,17 +227,17 @@ const ManageAccounts = () => {
           ? (formData.funding_firm_id || null)
           : null,
         funding_target_1: formData.account_type === 'evaluation'
-          ? (formData.funding_target_1 || null)
+          ? (pTarget1 || null)
           : null,
         funding_target_2: formData.account_type === 'evaluation' && formData.funding_phases === 2
-          ? (formData.funding_target_2 || null)
+          ? (pTarget2 || null)
           : null,
         funding_phases: formData.account_type === 'evaluation'
           ? formData.funding_phases
           : null,
         drawdown_type: formData.drawdown_type,
-        drawdown_amount: formData.drawdown_amount > 0 ? formData.drawdown_amount : null,
-        profit_target: formData.profit_target > 0 ? formData.profit_target : null,
+        drawdown_amount: pDrawdown > 0 ? pDrawdown : null,
+        profit_target: pProfitTarget > 0 ? pProfitTarget : null,
         consistency_min_profit_days: formData.account_type === 'live' && formData.has_consistency
           ? formData.consistency_min_profit_days
           : null,
@@ -261,8 +272,8 @@ const ManageAccounts = () => {
         const insertData = {
           ...formFields,
           user_id: user.id,
-          current_capital: formData.initial_capital,
-          highest_balance: formData.initial_capital,
+          current_capital: pInitCap,
+          highest_balance: pInitCap,
         };
 
         const { error } = await supabase
@@ -415,8 +426,9 @@ const ManageAccounts = () => {
                     setFormData(prev => ({
                       ...prev,
                       asset_class: value,
-                      // Reset firm if changing away from futures
-                      ...(value !== 'futures' && { funding_firm_id: '' as const })
+                      // Reset firm when switching markets
+                      funding_firm_id: '' as const,
+                      funding_company: '',
                     }))
                   }
                 >
@@ -448,8 +460,8 @@ const ManageAccounts = () => {
                         funding_company: '',
                         funding_firm_id: '' as const,
                         funding_phases: 1,
-                        funding_target_1: 0,
-                        funding_target_2: 0,
+                        funding_target_1: '',
+                        funding_target_2: '',
                         has_consistency: false,
                       }),
                       ...(validValue === 'evaluation' && {
@@ -475,15 +487,16 @@ const ManageAccounts = () => {
               </div>
 
               {/* Step 4: Conditional Funding Firm Selection */}
-              {/* Show for: Live+Futures, Evaluation (any market) */}
-              {((formData.account_type === 'live' && formData.asset_class === 'futures') ||
-                formData.account_type === 'evaluation') && (
+              {/* Show for: (Evaluation or Live) AND market has firms (futures/forex) */}
+              {marketHasFirms(formData.asset_class) &&
+                (formData.account_type === 'evaluation' || formData.account_type === 'live') && (
                 <div className="grid gap-2">
                   <Label htmlFor="funding_firm">Empresa de Fondeo *</Label>
                   <Select
                     value={formData.funding_firm_id}
                     onValueChange={(value) => {
-                      const firm = FUNDING_FIRM_LIST.find(f => f.id === value);
+                      const firmList = getFirmsByMarket(formData.asset_class);
+                      const firm = firmList.find(f => f.id === value);
                       setFormData(prev => ({
                         ...prev,
                         funding_firm_id: value as FundingFirmId,
@@ -495,7 +508,7 @@ const ManageAccounts = () => {
                       <SelectValue placeholder="Selecciona empresa de fondeo" />
                     </SelectTrigger>
                     <SelectContent>
-                      {FUNDING_FIRM_LIST.map((firm) => (
+                      {getFirmsByMarket(formData.asset_class).map((firm) => (
                         <SelectItem key={firm.id} value={firm.id}>
                           {firm.label}
                         </SelectItem>
@@ -505,8 +518,8 @@ const ManageAccounts = () => {
                 </div>
               )}
 
-              {/* For Live accounts on non-futures markets, show free-text firm input */}
-              {formData.account_type === 'live' && formData.asset_class !== 'futures' && (
+              {/* For Live accounts on markets WITHOUT a firm list, show free-text firm input */}
+              {formData.account_type === 'live' && !marketHasFirms(formData.asset_class) && (
                 <div className="grid gap-2">
                   <Label htmlFor="funding_company">Empresa de Fondeo *</Label>
                   <Input
@@ -527,8 +540,8 @@ const ManageAccounts = () => {
                   min="0"
                   step="0.01"
                   value={formData.initial_capital}
-                  onChange={(e) => setFormData({ ...formData, initial_capital: parseFloat(e.target.value) || 0 })}
-                  placeholder="0.00"
+                  onChange={(e) => setFormData({ ...formData, initial_capital: e.target.value })}
+                  placeholder="Ej: 50,000"
                 />
               </div>
 
@@ -561,8 +574,8 @@ const ManageAccounts = () => {
                         min="0"
                         step="0.01"
                         value={formData.funding_target_1}
-                        onChange={(e) => setFormData({ ...formData, funding_target_1: parseFloat(e.target.value) || 0 })}
-                        placeholder="Ej: 6000"
+                        onChange={(e) => setFormData({ ...formData, funding_target_1: e.target.value })}
+                        placeholder="Ej: 6,000"
                       />
                     </div>
 
@@ -575,8 +588,8 @@ const ManageAccounts = () => {
                           min="0"
                           step="0.01"
                           value={formData.funding_target_2}
-                          onChange={(e) => setFormData({ ...formData, funding_target_2: parseFloat(e.target.value) || 0 })}
-                          placeholder="Ej: 3000"
+                          onChange={(e) => setFormData({ ...formData, funding_target_2: e.target.value })}
+                          placeholder="Ej: 3,000"
                         />
                       </div>
                     )}
@@ -611,8 +624,8 @@ const ManageAccounts = () => {
                     min="0"
                     step="0.01"
                     value={formData.drawdown_amount}
-                    onChange={(e) => setFormData({ ...formData, drawdown_amount: parseFloat(e.target.value) || 0 })}
-                    placeholder="Ej: 2000"
+                    onChange={(e) => setFormData({ ...formData, drawdown_amount: e.target.value })}
+                    placeholder="Ej: 2,000"
                   />
                   <p className="text-xs text-muted-foreground">Máxima pérdida permitida</p>
                 </div>
@@ -625,8 +638,8 @@ const ManageAccounts = () => {
                       min="0"
                       step="0.01"
                       value={formData.profit_target}
-                      onChange={(e) => setFormData({ ...formData, profit_target: parseFloat(e.target.value) || 0 })}
-                      placeholder="Ej: 3000"
+                      onChange={(e) => setFormData({ ...formData, profit_target: e.target.value })}
+                      placeholder="Ej: 3,000"
                     />
                   </div>
                 )}

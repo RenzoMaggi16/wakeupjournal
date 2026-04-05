@@ -1,17 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarIcon, Filter, X, DollarSign, Percent } from "lucide-react";
+import { DollarSign, Percent } from "lucide-react";
 import type { CalendarDisplayMode } from "@/components/Dashboard";
-import { useQuery } from "@tanstack/react-query";
-
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { DateRange } from "react-day-picker";
-import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear } from "date-fns";
-import { es } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
+import type { DateRange } from "react-day-picker";
 
 interface DashboardHeaderProps {
     selectedAccountId: string | null;
@@ -27,7 +20,6 @@ export const DashboardHeader = ({ selectedAccountId, onAccountChange, accounts, 
     const [userName, setUserName] = useState<string>("Trader");
 
     useEffect(() => {
-        // Fetch user name
         const getUser = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user?.user_metadata?.first_name) {
@@ -36,22 +28,6 @@ export const DashboardHeader = ({ selectedAccountId, onAccountChange, accounts, 
         };
         getUser();
     }, []);
-
-    const handlePresetChange = (preset: string) => {
-        const today = new Date();
-        if (preset === "last_7_days") {
-            setDateRange({ from: subDays(today, 7), to: today });
-        } else if (preset === "last_30_days") {
-            setDateRange({ from: subDays(today, 30), to: today });
-        } else if (preset === "this_month") {
-            setDateRange({ from: startOfMonth(today), to: endOfMonth(today) });
-        } else if (preset === "last_month") {
-            const lastMonth = subMonths(today, 1);
-            setDateRange({ from: startOfMonth(lastMonth), to: endOfMonth(lastMonth) });
-        } else if (preset === "this_year") {
-            setDateRange({ from: startOfYear(today), to: endOfYear(today) });
-        }
-    };
 
     return (
         <div className="flex flex-col gap-3 mb-1">
@@ -95,60 +71,12 @@ export const DashboardHeader = ({ selectedAccountId, onAccountChange, accounts, 
                     </SelectContent>
                 </Select>
 
-                {/* Date Picker - spans full width on mobile */}
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button
-                            id="date"
-                            variant={"outline"}
-                            className={cn(
-                                "justify-start text-left font-normal bg-card border-border/50 col-span-2 sm:col-span-1 w-full sm:w-auto sm:min-w-[240px] text-xs sm:text-sm",
-                                !dateRange && "text-muted-foreground"
-                            )}
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4 text-blue-500 shrink-0" />
-                            {dateRange?.from ? (
-                                dateRange.to ? (
-                                    <>
-                                        {format(dateRange.from, "LLL dd, y", { locale: es })} -{" "}
-                                        {format(dateRange.to, "LLL dd, y", { locale: es })}
-                                    </>
-                                ) : (
-                                    format(dateRange.from, "LLL dd, y", { locale: es })
-                                )
-                            ) : (
-                                <span>Filtrar por fecha</span>
-                            )}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 max-w-[95vw]" align="start">
-                        <div className="flex flex-col sm:flex-row">
-                            <div className="p-2 border-b sm:border-b-0 sm:border-r border-border space-y-1 sm:space-y-2 sm:min-w-[140px]">
-                                <div className="text-xs font-semibold text-muted-foreground mb-1 sm:mb-2 px-2">Predefinidos</div>
-                                <div className="flex flex-wrap sm:flex-col gap-1">
-                                    <Button variant="ghost" size="sm" className="justify-start text-xs flex-1 sm:flex-none sm:w-full" onClick={() => handlePresetChange("last_7_days")}>7 días</Button>
-                                    <Button variant="ghost" size="sm" className="justify-start text-xs flex-1 sm:flex-none sm:w-full" onClick={() => handlePresetChange("last_30_days")}>30 días</Button>
-                                    <Button variant="ghost" size="sm" className="justify-start text-xs flex-1 sm:flex-none sm:w-full" onClick={() => handlePresetChange("this_month")}>Este mes</Button>
-                                    <Button variant="ghost" size="sm" className="justify-start text-xs flex-1 sm:flex-none sm:w-full" onClick={() => handlePresetChange("last_month")}>Mes pasado</Button>
-                                    <Button variant="ghost" size="sm" className="justify-start text-xs flex-1 sm:flex-none sm:w-full" onClick={() => handlePresetChange("this_year")}>Este año</Button>
-                                </div>
-                                <div className="border-t border-border my-1 sm:my-2"></div>
-                                <Button variant="ghost" size="sm" className="w-full justify-start text-xs text-destructive hover:text-destructive" onClick={() => setDateRange(undefined)}>
-                                    <X className="mr-2 h-3 w-3" /> Limpiar filtro
-                                </Button>
-                            </div>
-                            <Calendar
-                                initialFocus
-                                mode="range"
-                                defaultMonth={dateRange?.from}
-                                selected={dateRange}
-                                onSelect={setDateRange}
-                                numberOfMonths={1}
-                                locale={es}
-                            />
-                        </div>
-                    </PopoverContent>
-                </Popover>
+                {/* Date Range Filter (reusable component) */}
+                <DateRangeFilter
+                    dateRange={dateRange}
+                    setDateRange={setDateRange}
+                    className="col-span-2 sm:col-span-1"
+                />
             </div>
         </div>
     );

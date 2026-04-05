@@ -5,6 +5,9 @@ import { PnLCalendar } from "./PnLCalendar";
 import { CalendarContainer } from "./calendar/CalendarContainer";
 import EquityChart from "./EquityChart";
 import { useMemo, useState, useEffect } from "react";
+import { WelcomeOnboardingModal } from "./WelcomeOnboardingModal";
+import { useDateRangeContext } from "@/context/DateRangeContext";
+import { PositiveDaysCard } from "./dashboard/PositiveDaysCard";
 import { WinRateDonutChart } from "@/components/charts/WinRateDonutChart";
 import { DashboardHeader } from "./dashboard/DashboardHeader";
 import { StatCard } from "./dashboard/StatCard";
@@ -52,6 +55,8 @@ interface Account {
   highest_balance?: number | null;
   profit_target?: number | null;
   funding_target_1?: number | null;
+  funding_target_2?: number | null;
+  funding_phases?: number | null;
   consistency_min_profit_days?: number | null;
   consistency_withdrawal_pct?: number | null;
   evaluation_passed?: boolean;
@@ -61,7 +66,7 @@ interface Account {
 
 export const Dashboard = () => {
   const { globalAccountId: selectedAccountId, setAccount: setSelectedAccountId } = useAccountContext();
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const { dateRange, setDateRange } = useDateRangeContext();
   const [displayMode, setDisplayMode] = useState<CalendarDisplayMode>(() => {
     const saved = localStorage.getItem('calendar-display-mode');
     return (saved === 'percentage' ? 'percentage' : 'dollars') as CalendarDisplayMode;
@@ -77,6 +82,9 @@ export const Dashboard = () => {
   // Risk panel account filter (persists in "All Accounts" mode)
   const [riskAccountId, setRiskAccountId] = useState<string | null>(null);
 
+  // Welcome onboarding modal state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
   // Trading Plan hook
   const { plan, isLoading: isLoadingPlan, savePlan, isSaving } = useTradingPlan();
 
@@ -91,7 +99,7 @@ export const Dashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('accounts')
-        .select('id, account_name, account_type, initial_capital, current_capital, drawdown_type, drawdown_amount, highest_balance, profit_target, funding_target_1, consistency_min_profit_days, consistency_withdrawal_pct, evaluation_passed, evaluation_passed_at, funding_firm_id')
+        .select('id, account_name, account_type, initial_capital, current_capital, drawdown_type, drawdown_amount, highest_balance, profit_target, funding_target_1, funding_target_2, funding_phases, consistency_min_profit_days, consistency_withdrawal_pct, evaluation_passed, evaluation_passed_at, funding_firm_id')
         .order('created_at', { ascending: true }); // Oldest first = "First Created"
 
       if (error) throw error;
@@ -536,7 +544,40 @@ export const Dashboard = () => {
 
   // If no account is selected (loading or empty), show friendly state
   if (!selectedAccountId && !isLoadingAccounts) {
-    if (accounts.length === 0) return <div className="p-4">No accounts found. Create one to get started.</div>;
+    if (accounts.length === 0) {
+      const onboardingDone = localStorage.getItem('onboarding-first-account-done');
+      if (!onboardingDone && !showOnboarding) {
+        // Trigger onboarding on next tick to avoid setState during render
+        setTimeout(() => setShowOnboarding(true), 0);
+      }
+      return (
+        <>
+          <WelcomeOnboardingModal
+            isOpen={showOnboarding}
+            onOpenChange={setShowOnboarding}
+          />
+          {/* Fallback empty state if onboarding was dismissed */}
+          {!showOnboarding && (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4">
+              <div className="relative mx-auto w-20 h-20 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-500/15 to-violet-500/15 animate-pulse" />
+                <span className="text-4xl relative z-10">📊</span>
+              </div>
+              <h2 className="text-xl font-bold text-foreground">No tienes cuentas registradas</h2>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                Crea tu primera cuenta de trading para comenzar a registrar y analizar tus operaciones.
+              </p>
+              <button
+                onClick={() => setShowOnboarding(true)}
+                className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-500 hover:to-violet-500 text-white font-medium text-sm shadow-lg shadow-cyan-500/20 transition-all"
+              >
+                Configurar mi primera cuenta
+              </button>
+            </div>
+          )}
+        </>
+      );
+    }
   }
 
   return (
@@ -608,13 +649,15 @@ export const Dashboard = () => {
             <div className="md:col-span-1 flex flex-col gap-4 min-w-0">
               {/* Risk Account Card — always visible */}
               {riskData && riskData.account && (
-                <RiskAccountCard
+              <RiskAccountCard
                   account={riskData.account}
                   currentBalance={riskData.balance}
                   highWaterMark={riskData.hwm}
                   profitTarget={
                     (() => {
                       const acc = riskData.account;
+                      // For evaluation accounts, profit target is handled internally via phase logic
+                      // Only pass profitTarget for non-evaluation accounts
                       return acc.account_type === 'evaluation'
                         ? (acc.funding_target_1 ?? undefined)
                         : (acc.profit_target ?? undefined);
@@ -849,6 +892,9 @@ export const Dashboard = () => {
                       </div>
                     </div>
                   </StatCard>
+
+                  {/* Positive Days % Card */}
+                  <PositiveDaysCard trades={trades.map(t => ({ pnl_neto: t.pnl_neto, entry_time: t.entry_time }))} />
                 </div>
               </div>
             </div>

@@ -20,6 +20,7 @@ import { ThemeProvider } from "./context/ThemeProvider";
 import { ColorProvider } from "./context/ColorProvider";
 import { SmoothScrollProvider } from "./components/SmoothScrollProvider";
 import { AccountProvider } from "./context/AccountContext";
+import { DateRangeProvider } from "./context/DateRangeContext";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
       <SmoothScrollProvider>
         <QueryClientProvider client={queryClient}>
           <AccountProvider>
+            <DateRangeProvider>
             <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -50,6 +52,7 @@ const App = () => (
               </Routes>
             </BrowserRouter>
             </TooltipProvider>
+            </DateRangeProvider>
           </AccountProvider>
         </QueryClientProvider>
       </SmoothScrollProvider>
