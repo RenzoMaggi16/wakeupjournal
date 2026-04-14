@@ -835,6 +835,49 @@ All colors MUST be HSL.
   text-shadow: 0 0 14px rgba(239, 68, 68, 0.5) !important;
 }
 
+/* ─── Calendar Mobile Responsive ─────────────────────── */
+@media (max-width: 768px) {
+  /* Calendar day cells — reduce height and padding */
+  .rdp-day {
+    height: auto !important;
+  }
+
+  /* Rows spacing */
+  .rdp .rdp-row {
+    gap: 2px !important;
+    margin-top: 2px !important;
+  }
+
+  /* Weekly summary cards — tighter layout */
+  .grid.grid-cols-1.md\:grid-cols-5 .md\:col-span-1 {
+    order: 2;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Calendar day cells — compact mobile */
+  .rdp-day {
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  .rdp .rdp-row {
+    gap: 1px !important;
+    margin-top: 1px !important;
+  }
+
+  .rdp .rdp-cell {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Header day labels */
+  .rdp .rdp-head_cell {
+    font-size: 8px !important;
+    padding: 2px 0 !important;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════
    AUTH PAGE — Cyber-Modern / Liquid Glass Aesthetic
    ═══════════════════════════════════════════════════════════ */

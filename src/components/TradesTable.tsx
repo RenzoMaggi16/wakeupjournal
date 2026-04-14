@@ -358,7 +358,7 @@ export const TradesTable = () => {
                         <TableCell>
                           <Badge variant="outline">{trade.par ?? '-'}</Badge>
                         </TableCell>
-                        <TableCell className={`text-right font-medium ${pnl >= 0 ? 'text-profit-custom' : 'text-loss-custom'}`}>
+                        <TableCell className={`text-right font-medium ${pnl > 0 ? 'text-profit-custom' : pnl < 0 ? 'text-loss-custom' : 'text-muted-foreground'}`}>
                           ${pnl.toFixed(2)}
                         </TableCell>
                         <TableCell className={isBuy ? 'text-green-600' : 'text-red-600'}>

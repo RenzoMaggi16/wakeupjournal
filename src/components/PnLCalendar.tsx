@@ -168,7 +168,7 @@ export const PnLCalendar = ({ trades = [], payouts = [], displayMode = 'dollars'
 
               return (
                 <div
-                  className={`rounded-lg ${borderStyle} relative flex flex-col items-center justify-center p-0.5 md:p-1.5 h-16 md:h-[7.2rem] w-full ${bgClass} ${animateClass} ${hasTrades ? 'cursor-pointer group' : ''}`}
+                  className={`rounded-lg ${borderStyle} relative flex flex-col items-center justify-center p-0.5 md:p-1.5 h-14 md:h-[7.2rem] w-full overflow-hidden ${bgClass} ${animateClass} ${hasTrades ? 'cursor-pointer group' : ''}`}
                   style={{
                     ...glowStyle,
                     animationDelay: animDelay,
@@ -176,25 +176,25 @@ export const PnLCalendar = ({ trades = [], payouts = [], displayMode = 'dollars'
                   onClick={handleDayClick}
                 >
                   {/* Day number — top-left */}
-                  <div className="absolute top-0.5 left-1 md:top-1 md:left-1.5">
+                  <div className="absolute top-0.5 left-0.5 md:top-1 md:left-1.5 z-10">
                     {isCurrentDay ? (
-                      <span className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-4 h-4 md:w-5 md:h-5 text-[8px] md:text-[10px] font-bold shadow-[0_0_8px_rgba(139,92,246,0.3)]">
+                      <span className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-3.5 h-3.5 md:w-5 md:h-5 text-[7px] md:text-[10px] font-bold shadow-[0_0_8px_rgba(139,92,246,0.3)]">
                         {format(date, "d")}
                       </span>
                     ) : (
-                      <span className="text-[8px] md:text-[10px] text-muted-foreground/60 font-medium">
+                      <span className="text-[7px] md:text-[10px] text-muted-foreground/60 font-medium leading-none">
                         {format(date, "d")}
                       </span>
                     )}
                   </div>
 
                   {/* Main content */}
-                  <div className="flex flex-col items-center justify-center gap-0 mt-1">
+                  <div className="flex flex-col items-center justify-center gap-0 mt-1 w-full px-0.5">
                     {hasTrades ? (
                       <>
                         {/* PnL — MAIN FOCUS */}
                         <span
-                          className={`text-sm md:text-lg font-bold leading-tight ${
+                          className={`text-[10px] md:text-lg font-bold leading-tight truncate max-w-full ${
                             isProfitable
                               ? 'text-emerald-400'
                               : isLoss
@@ -212,13 +212,13 @@ export const PnLCalendar = ({ trades = [], payouts = [], displayMode = 'dollars'
                           {isLoss ? '-' : isProfitable ? '+' : ''}{pnlDisplay}
                         </span>
 
-                        {/* Trades count */}
-                        <span className="text-[7px] md:text-[9px] text-muted-foreground/70 font-medium mt-0.5">
+                        {/* Trades count — hidden on very small screens */}
+                        <span className="hidden md:inline text-[9px] text-muted-foreground/70 font-medium mt-0.5">
                           {dayPnL.tradeCount} {dayPnL.tradeCount === 1 ? 'trade' : 'trades'}
                         </span>
 
-                        {/* Winrate */}
-                        <span className={`text-[7px] md:text-[9px] font-medium ${
+                        {/* Winrate — hidden on very small screens */}
+                        <span className={`hidden md:inline text-[9px] font-medium ${
                           winRate >= 50 ? 'text-emerald-500/60' : 'text-red-400/50'
                         }`}>
                           {winRate.toFixed(0)}%
@@ -228,8 +228,8 @@ export const PnLCalendar = ({ trades = [], payouts = [], displayMode = 'dollars'
 
                     {/* Payout badge */}
                     {hasPayout && (
-                      <div className="absolute bottom-0.5 right-1 md:bottom-1 md:right-1.5">
-                        <span className="text-[7px] md:text-[9px] font-semibold text-violet-400">
+                      <div className="absolute bottom-0.5 right-0.5 md:bottom-1 md:right-1.5">
+                        <span className="text-[6px] md:text-[9px] font-semibold text-violet-400">
                           💸 -${dayPnL!.payoutAmount.toFixed(0)}
                         </span>
                       </div>

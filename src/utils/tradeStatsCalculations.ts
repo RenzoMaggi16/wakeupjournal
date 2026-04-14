@@ -176,8 +176,8 @@ function computeAvgDuration(
   let count = 0;
 
   trades.forEach(t => {
-    if (filter === 'win' && t.pnl_neto <= 0) return;
-    if (filter === 'loss' && t.pnl_neto >= 0) return;
+    if (filter === 'win' && !(t.pnl_neto > 0)) return;
+    if (filter === 'loss' && !(t.pnl_neto < 0)) return;
 
     const dur = getTradeDurationMinutes(t);
     if (dur !== null) {

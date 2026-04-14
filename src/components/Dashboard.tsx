@@ -333,7 +333,8 @@ export const Dashboard = () => {
   const { weeklySummaries, monthlyWinRate, monthlyPayout, monthlyDailyData, monthlyTotalPnl, monthlyProfitTotal, monthlyLossTotal } = useMemo(() => {
     const monthStart = startOfMonth(calendarMonth);
     const monthEnd = endOfMonth(calendarMonth);
-    const monthlyTrades = trades.filter(t => {
+    // Use allTrades (not date-range-filtered trades) so the monthly summary is scoped ONLY to the calendar month
+    const monthlyTrades = allTrades.filter(t => {
       const d = parseISO(t.entry_time);
       return isWithinInterval(d, { start: monthStart, end: monthEnd });
     });
@@ -404,7 +405,7 @@ export const Dashboard = () => {
     const monthlyProfitTotal = monthlyTrades.reduce((sum, t) => sum + (t.pnl_neto > 0 ? Number(t.pnl_neto) : 0), 0);
     const monthlyLossTotal = Math.abs(monthlyTrades.reduce((sum, t) => sum + (t.pnl_neto < 0 ? Number(t.pnl_neto) : 0), 0));
     return { weeklySummaries, monthlyWinRate, monthlyPayout, monthlyDailyData, monthlyTotalPnl, monthlyProfitTotal, monthlyLossTotal };
-  }, [trades, payouts, calendarMonth]);
+  }, [allTrades, payouts, calendarMonth]);
   // Equity Curve Data & Current Balance Calculation
   const { equityCurveData, currentBalance, highWaterMark } = useMemo(() => {
     let initialCapital = 0;
@@ -605,8 +606,8 @@ export const Dashboard = () => {
               <div className="h-[60px] flex items-center justify-center mt-2">
                 <WinRateDonutChart
                   wins={trades.filter(t => t.pnl_neto > 0).length}
-                  losses={trades.filter(t => t.pnl_neto <= 0).length}
-                  breakeven={0}
+                  losses={trades.filter(t => t.pnl_neto < 0).length}
+                  breakeven={trades.filter(t => t.pnl_neto === 0).length}
                   hideLegend
                 />
               </div>
