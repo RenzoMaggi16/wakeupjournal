@@ -401,6 +401,8 @@ export const Dashboard = () => {
       dailyMap.set(ds, (dailyMap.get(ds) || 0) + Number(t.pnl_neto));
     });
     const monthlyDailyData = Array.from(dailyMap.entries()).map(([day, pnl]) => ({ day, pnl }));
+    // NOTE: monthlyTotalPnl, monthlyProfitTotal, monthlyLossTotal are computed from TRADES ONLY.
+    // Withdrawals (payouts) are intentionally excluded — they affect balance, NOT trading performance.
     const monthlyTotalPnl = monthlyTrades.reduce((sum, t) => sum + Number(t.pnl_neto), 0);
     const monthlyProfitTotal = monthlyTrades.reduce((sum, t) => sum + (t.pnl_neto > 0 ? Number(t.pnl_neto) : 0), 0);
     const monthlyLossTotal = Math.abs(monthlyTrades.reduce((sum, t) => sum + (t.pnl_neto < 0 ? Number(t.pnl_neto) : 0), 0));
@@ -454,6 +456,8 @@ export const Dashboard = () => {
       });
     }
 
+    // Equity curve tracks TRADING P&L only — payouts are NOT plotted as data points.
+    // This means the chart shows pure trading performance without withdrawal spikes.
     let runningPnl = 0;
     const curve = filteredCurveTrades.map(trade => {
       runningPnl += Number(trade.pnl_neto);
@@ -843,12 +847,6 @@ export const Dashboard = () => {
                     subValue="Win Rate del mes"
                     className="flex-1"
                   >
-                    <div className="flex items-center justify-between rounded-md border border-border/40 px-4 py-3">
-                      <span className="text-sm text-muted-foreground">Retiros</span>
-                      <span className="text-base font-semibold text-violet-400">
-                        ${monthlyPayout.toFixed(2)}
-                      </span>
-                    </div>
                     <div className="mt-3 rounded-md border border-border/30 bg-muted/10 p-2">
                       <div className="text-xs text-muted-foreground mb-1">PNL diario</div>
                       <div className="h-[140px] w-full">
@@ -871,17 +869,19 @@ export const Dashboard = () => {
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
+
+                      {/* Trading Performance Stats — trades only, payouts excluded */}
                       <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
                         <div className="rounded-md border border-border/30 p-2 text-center">
-                          <div className="text-muted-foreground">Total</div>
+                          <div className="text-muted-foreground">Neto</div>
                           <div className={`font-semibold ${monthlyTotalPnl >= 0 ? 'text-[var(--profit-color)]' : 'text-[var(--loss-color)]'}`}>
-                            ${(Math.abs(monthlyTotalPnl)).toFixed(2)}
+                            {monthlyTotalPnl >= 0 ? '+' : '-'}${(Math.abs(monthlyTotalPnl)).toFixed(2)}
                           </div>
                         </div>
                         <div className="rounded-md border border-border/30 p-2 text-center">
                           <div className="text-muted-foreground">Profit</div>
                           <div className="font-semibold text-[var(--profit-color)]">
-                            ${monthlyProfitTotal.toFixed(2)}
+                            +${monthlyProfitTotal.toFixed(2)}
                           </div>
                         </div>
                         <div className="rounded-md border border-border/30 p-2 text-center">
@@ -890,6 +890,19 @@ export const Dashboard = () => {
                             -${monthlyLossTotal.toFixed(2)}
                           </div>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Withdrawals section — visually separated, clearly NOT part of P&L */}
+                    <div className="mt-3 rounded-md border border-violet-500/20 bg-violet-500/5 px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium text-violet-400">💸 Retiros del mes</span>
+                          <span className="text-[10px] text-muted-foreground mt-0.5">No afectan el P&amp;L</span>
+                        </div>
+                        <span className="text-sm font-semibold text-violet-400">
+                          {monthlyPayout > 0 ? `-$${monthlyPayout.toFixed(2)}` : '$0.00'}
+                        </span>
                       </div>
                     </div>
                   </StatCard>
