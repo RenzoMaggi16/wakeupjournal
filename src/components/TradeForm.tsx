@@ -11,7 +11,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Plus, AlertTriangle, Star } from "lucide-react";
+import { CalendarIcon, Plus, AlertTriangle, Star, Upload, Link, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -97,6 +97,16 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
   const [imageUrlM5, setImageUrlM5] = useState('');
   const [imageUrlM15, setImageUrlM15] = useState('');
 
+  // Modos de entrada de imagen: 'url' | 'file'
+  const [imageInputModeM1, setImageInputModeM1] = useState<'url' | 'file'>('url');
+  const [imageInputModeM5, setImageInputModeM5] = useState<'url' | 'file'>('url');
+  const [imageInputModeM15, setImageInputModeM15] = useState<'url' | 'file'>('url');
+
+  // Estados de carga de archivos
+  const [uploadingM1, setUploadingM1] = useState(false);
+  const [uploadingM5, setUploadingM5] = useState(false);
+  const [uploadingM15, setUploadingM15] = useState(false);
+
   // Estados para Trade del Día
   const [isTradeOfDay, setIsTradeOfDay] = useState(false);
   const [tradeOfDayImage, setTradeOfDayImage] = useState('');
@@ -117,6 +127,44 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
 
   const handleRadioChange = (value: "buy" | "sell") => {
     setFormData((prev) => ({ ...prev, trade_type: value }));
+  };
+
+  // --- Función para subir imagen a Supabase Storage ---
+  const uploadImageToStorage = async (
+    file: File,
+    timeframe: 'M1' | 'M5' | 'M15',
+    setUploading: (v: boolean) => void,
+    setUrl: (url: string) => void
+  ) => {
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
+      const ext = file.name.split('.').pop();
+      const fileName = `${user.id}/${timeframe}_${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('trade-images')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('trade-images')
+        .getPublicUrl(fileName);
+
+      if (publicUrlData?.publicUrl) {
+        setUrl(publicUrlData.publicUrl);
+        toast.success(`Imagen ${timeframe} subida correctamente`);
+      } else {
+        throw new Error('No se pudo obtener la URL pública');
+      }
+    } catch (err: any) {
+      toast.error('Error al subir la imagen: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   // --- Fin Handlers ---
@@ -211,6 +259,9 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
       setImageUrlM1('');
       setImageUrlM5('');
       setImageUrlM15('');
+      setImageInputModeM1('url');
+      setImageInputModeM5('url');
+      setImageInputModeM15('url');
       setSetupCompliance('full');
       setOutsidePlanWarning(false);
       setIsTradeOfDay(false);
@@ -514,6 +565,9 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
         setImageUrlM1('');
         setImageUrlM5('');
         setImageUrlM15('');
+        setImageInputModeM1('url');
+        setImageInputModeM5('url');
+        setImageInputModeM15('url');
         setSetupCompliance('full');
         setOutsidePlanWarning(false);
         setIsTradeOfDay(false);
@@ -767,46 +821,138 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
             </div>
           </div>
 
-          {/* Sección de Enlaces de Gráficos (M1, M5, M15) */}
-          <div className="space-y-2 pt-4 col-span-1 md:col-span-2">
-            <Label className="font-semibold text-lg">Enlaces de Gráficos (Opcional)</Label>
+          {/* Sección de Imágenes de Gráficos (M1, M5, M15) */}
+          <div className="space-y-3 pt-4 col-span-1 md:col-span-2">
+            <Label className="font-semibold text-lg">Imágenes de Gráficos (Opcional)</Label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* M1 */}
-              <div className="space-y-1">
-                <Label htmlFor="image_url_m1" className="text-sm">M1</Label>
-                <Input
-                  id="image_url_m1"
-                  type="url"
-                  placeholder="Pegar enlace a la imagen M1..."
-                  value={imageUrlM1}
-                  onChange={(e) => setImageUrlM1(e.target.value)}
-                  className="bg-secondary"
-                />
-              </div>
-              {/* M5 */}
-              <div className="space-y-1">
-                <Label htmlFor="image_url_m5" className="text-sm">M5</Label>
-                <Input
-                  id="image_url_m5"
-                  type="url"
-                  placeholder="Pegar enlace a la imagen M5..."
-                  value={imageUrlM5}
-                  onChange={(e) => setImageUrlM5(e.target.value)}
-                  className="bg-secondary"
-                />
-              </div>
-              {/* M15 */}
-              <div className="space-y-1">
-                <Label htmlFor="image_url_m15" className="text-sm">M15</Label>
-                <Input
-                  id="image_url_m15"
-                  type="url"
-                  placeholder="Pegar enlace a la imagen M15..."
-                  value={imageUrlM15}
-                  onChange={(e) => setImageUrlM15(e.target.value)}
-                  className="bg-secondary"
-                />
-              </div>
+
+              {/* ---- M1 ---- */}
+              {([
+                { label: 'M1', url: imageUrlM1, setUrl: setImageUrlM1, mode: imageInputModeM1, setMode: setImageInputModeM1, uploading: uploadingM1, setUploading: setUploadingM1, timeframe: 'M1' as const },
+                { label: 'M5', url: imageUrlM5, setUrl: setImageUrlM5, mode: imageInputModeM5, setMode: setImageInputModeM5, uploading: uploadingM5, setUploading: setUploadingM5, timeframe: 'M5' as const },
+                { label: 'M15', url: imageUrlM15, setUrl: setImageUrlM15, mode: imageInputModeM15, setMode: setImageInputModeM15, uploading: uploadingM15, setUploading: setUploadingM15, timeframe: 'M15' as const },
+              ]).map(({ label, url, setUrl, mode, setMode, uploading, setUploading, timeframe }) => (
+                <div key={label} className="space-y-2">
+                  {/* Mode selector tabs */}
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">{label}</Label>
+                    <div className="flex items-center gap-1 bg-neutral-800 rounded-md p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setMode('url')}
+                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                          mode === 'url'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Link className="h-3 w-3" />
+                        URL
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMode('file')}
+                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                          mode === 'file'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Upload className="h-3 w-3" />
+                        Archivo
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* URL mode */}
+                  {mode === 'url' && (
+                    <Input
+                      id={`image_url_${label.toLowerCase()}`}
+                      type="url"
+                      placeholder={`Pegar enlace a la imagen ${label}...`}
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      className="bg-secondary"
+                    />
+                  )}
+
+                  {/* File mode */}
+                  {mode === 'file' && (
+                    <div className="space-y-2">
+                      <label
+                        htmlFor={`file_upload_${label.toLowerCase()}`}
+                        className={`flex flex-col items-center justify-center w-full h-24 rounded-md border-2 border-dashed transition-colors cursor-pointer ${
+                          uploading
+                            ? 'border-primary/40 bg-primary/5'
+                            : 'border-neutral-700 bg-neutral-900 hover:border-primary/60 hover:bg-primary/5'
+                        }`}
+                      >
+                        {uploading ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                            <span className="text-xs text-muted-foreground">Subiendo...</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-1">
+                            <Upload className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">Click para subir imagen</span>
+                            <span className="text-[10px] text-neutral-600">JPG, PNG, WEBP (máx. 10MB)</span>
+                          </div>
+                        )}
+                        <input
+                          id={`file_upload_${label.toLowerCase()}`}
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                          className="hidden"
+                          disabled={uploading}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) uploadImageToStorage(file, timeframe, setUploading, setUrl);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+
+                      {/* Preview / URL result after upload */}
+                      {url && (
+                        <div className="relative group rounded-md overflow-hidden border border-neutral-700 bg-neutral-900">
+                          <img
+                            src={url}
+                            alt={`Preview ${label}`}
+                            className="w-full h-24 object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setUrl('')}
+                            className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Preview thumbnail when URL mode has a value */}
+                  {mode === 'url' && url && (
+                    <div className="relative group rounded-md overflow-hidden border border-neutral-700 bg-neutral-900">
+                      <img
+                        src={url}
+                        alt={`Preview ${label}`}
+                        className="w-full h-20 object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setUrl('')}
+                        className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
