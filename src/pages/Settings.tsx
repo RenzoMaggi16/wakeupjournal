@@ -15,6 +15,7 @@ import {
   Plug,
   Wallet,
   Palette,
+  Database,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +24,8 @@ import ManageAccounts from './ManageAccounts';
 import { useColors, THEMES, ThemeType } from '@/context/ColorProvider';
 import { cn } from "@/lib/utils";
 import { TradovateIntegration } from '@/components/TradovateIntegration';
+import { RithmicSyncForm } from '@/components/RithmicSyncForm';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── Miniature theme preview mockup ─────────────────────────
 const ThemePreviewMockup = ({
@@ -50,7 +53,7 @@ const ThemePreviewMockup = ({
       </div>
       <div className="flex-1 rounded-md flex flex-col justify-between p-1.5" style={{ backgroundColor: card }}>
         <div className="h-1.5 w-8 rounded-full" style={{ backgroundColor: foreground, opacity: 0.3 }} />
-        <div className="h-3 w-10 rounded" style={{ backgroundColor: loss, opacity: 0.85 }} />
+        <div className="h-3 w-10 rounded" style={{ backgroundColor: profit, opacity: 0.85 }} />
       </div>
     </div>
     {/* Tiny line chart */}
@@ -138,7 +141,7 @@ const Settings = () => {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           {/* ── SECTION 1: Apariencia y Temas ─────────────── */}
           <Card className="border-border/60 shadow-sm">
             <CardHeader className="pb-2">
@@ -313,7 +316,37 @@ const Settings = () => {
               </AccordionItem>
             </Accordion>
           </Card>
-        </div>
+
+          {/* ── SECTION 4: Conexión con Broker (Rithmic) ── */}
+          <Card className="border-border/60 shadow-sm">
+            <Accordion type="single" collapsible>
+              <AccordionItem value="rithmic" className="border-0">
+                <AccordionTrigger className="px-6 py-4 hover:no-underline [&[data-state=open]>div>.chevron-hint]:hidden">
+                  <div className="flex items-center gap-3 w-full min-w-0">
+                    <div className="p-1.5 rounded-lg bg-muted/50 shrink-0">
+                      <Database className="h-4 w-4 text-foreground/60" />
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <span className="text-base font-semibold">Conexión con Broker</span>
+                      <span className="text-muted-foreground font-normal text-sm ml-1">(Rithmic / TradeSea / Lucid)</span>
+                    </div>
+                    {/* Status preview could be added here if we lifted state up, but keeping it simple */}
+                    <div className="chevron-hint shrink-0 mr-2 flex items-center gap-2 text-xs text-muted-foreground">
+                      Opciones de Sync
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-0 pb-0">
+                  <div className="border-t border-border/30 pt-4">
+                    <div className="px-6 pb-6 pt-2">
+                      <RithmicSyncForm />
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </Card>
+        </motion.div>
       </main>
     </div>
   );

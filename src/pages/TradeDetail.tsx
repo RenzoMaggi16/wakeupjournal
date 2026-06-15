@@ -274,12 +274,19 @@ const TradeDetail = () => {
               </div>
               <InfoCard
                 title="Riesgo ($)"
-                value={`$${risk.toFixed(2)}`}
+                value={trade.riesgo ? `$${risk.toFixed(2)}` : '—'}
               />
               <InfoCard
                 title="RR (Calculado)"
                 value={calculatedRR}
               />
+              {trade.riesgo == null && (
+                <div className="col-span-2 md:col-span-4 mt-[-10px] text-xs text-muted-foreground/80 flex items-center justify-center">
+                  <span className="bg-yellow-500/10 text-yellow-500 px-2 py-1 rounded">
+                    Agregá tu riesgo planeado (editando el trade) para calcular el R-multiple.
+                  </span>
+                </div>
+              )}
               <InfoCard
                 title="Dirección"
                 value={trade.trade_type === 'buy' ? 'Compra' : 'Venta'}

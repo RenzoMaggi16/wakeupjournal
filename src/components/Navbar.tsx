@@ -55,6 +55,12 @@ export const Navbar = () => {
                 Reportes
               </Button>
             </Link>
+            <Link to="/roi">
+              <Button variant="ghost" size="sm" className="gap-2 rounded-lg hover:bg-white/[0.06] transition-all duration-200">
+                <TrendingUp className="h-4 w-4" />
+                ROI
+              </Button>
+            </Link>
             <Link to="/configuracion">
               <Button variant="ghost" size="sm" className="gap-2 rounded-lg hover:bg-white/[0.06] transition-all duration-200">
                 <Settings className="h-4 w-4" />
@@ -110,6 +116,12 @@ export const Navbar = () => {
               <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-10 rounded-lg hover:bg-white/[0.06]">
                 <BarChart3 className="h-4 w-4" />
                 Reportes
+              </Button>
+            </Link>
+            <Link to="/roi" onClick={closeMenu}>
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-3 h-10 rounded-lg hover:bg-white/[0.06]">
+                <TrendingUp className="h-4 w-4" />
+                ROI
               </Button>
             </Link>
             <Link to="/configuracion" onClick={closeMenu}>

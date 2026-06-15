@@ -6,7 +6,7 @@ import { TradeForm } from "@/components/TradeForm";
 import { TradesTable } from "@/components/TradesTable";
 import { Navbar } from "@/components/Navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Plus, Table, FileBarChart, Banknote } from "lucide-react";
+import { BarChart3, Plus, Table, FileBarChart, Banknote, TrendingUp } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import { PayoutForm } from "@/components/PayoutForm";
 
@@ -79,6 +79,12 @@ const Index = () => {
               <Link to="/#payout">
                 <Banknote className="h-4 w-4 shrink-0" />
                 <span className="hidden sm:inline">Retiro</span>
+              </Link>
+            </TabsTrigger>
+            <TabsTrigger value="roi" asChild className="gap-1.5 sm:gap-2 flex-1 min-w-0 text-xs sm:text-sm px-2 sm:px-3">
+              <Link to="/roi">
+                <TrendingUp className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">ROI</span>
               </Link>
             </TabsTrigger>
           </TabsList>

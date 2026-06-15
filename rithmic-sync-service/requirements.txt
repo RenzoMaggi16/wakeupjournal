@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+supabase
+pydantic>=2.9.0
+python-dotenv
+async-rithmic==1.6.2
+pyjwt
+httpx==0.27.0

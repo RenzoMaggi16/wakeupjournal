@@ -41,6 +41,51 @@ export type Database = {
         }
         Relationships: []
       }
+      rithmic_connections: {
+        Row: {
+          id: string
+          user_id: string
+          rithmic_account_id: string
+          system_name: string
+          gateway_environment: 'demo' | 'live'
+          account_creation_date: string | null
+          last_sync_at: string | null
+          last_synced_order_id: string | null
+          status: 'connected' | 'disconnected' | 'syncing' | 'error'
+          error_message: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          rithmic_account_id: string
+          system_name: string
+          gateway_environment?: 'demo' | 'live'
+          account_creation_date?: string | null
+          last_sync_at?: string | null
+          last_synced_order_id?: string | null
+          status?: 'connected' | 'disconnected' | 'syncing' | 'error'
+          error_message?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          rithmic_account_id?: string
+          system_name?: string
+          gateway_environment?: 'demo' | 'live'
+          account_creation_date?: string | null
+          last_sync_at?: string | null
+          last_synced_order_id?: string | null
+          status?: 'connected' | 'disconnected' | 'syncing' | 'error'
+          error_message?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tradovate_connections: {
         Row: {
           id: string
@@ -264,6 +309,7 @@ export type Database = {
           is_be: boolean | null
           created_at: string | null
           tradovate_fill_id: string | null
+          rithmic_order_id: string | null
         }
         Insert: {
           id?: string
@@ -289,6 +335,7 @@ export type Database = {
           is_be?: boolean | null
           created_at?: string | null
           tradovate_fill_id?: string | null
+          rithmic_order_id?: string | null
         }
         Update: {
           id?: string
@@ -314,6 +361,7 @@ export type Database = {
           is_be?: boolean | null
           created_at?: string | null
           tradovate_fill_id?: string | null
+          rithmic_order_id?: string | null
         }
         Relationships: []
       }
@@ -407,6 +455,60 @@ export type Database = {
           background_color_hex?: string
           created_at?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      roi_entries: {
+        Row: {
+          id: string
+          user_id: string
+          fecha: string
+          cuentas_compradas: number | null
+          inversion: number | null
+          retiros: number | null
+          monto_retiros: number | null
+          balance_mensual: number | null
+          empresa_fondeo: string | null
+          inversion_acumulada: number | null
+          retiros_acumulados: number | null
+          balance_acumulado: number | null
+          observaciones: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          fecha: string
+          cuentas_compradas?: number | null
+          inversion?: number | null
+          retiros?: number | null
+          monto_retiros?: number | null
+          balance_mensual?: number | null
+          empresa_fondeo?: string | null
+          inversion_acumulada?: number | null
+          retiros_acumulados?: number | null
+          balance_acumulado?: number | null
+          observaciones?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          fecha?: string
+          cuentas_compradas?: number | null
+          inversion?: number | null
+          retiros?: number | null
+          monto_retiros?: number | null
+          balance_mensual?: number | null
+          empresa_fondeo?: string | null
+          inversion_acumulada?: number | null
+          retiros_acumulados?: number | null
+          balance_acumulado?: number | null
+          observaciones?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }

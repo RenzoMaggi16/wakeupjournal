@@ -16,6 +16,7 @@ import AdvancedReports from "./pages/AdvancedReports";
 import StrategyReport from "./pages/StrategyReport";
 import Settings from "./pages/Settings";
 import TradesPage from "./pages/TradesPage";
+import { ROIPage } from "./pages/ROIPage";
 import { ThemeProvider } from "./context/ThemeProvider";
 import { ColorProvider } from "./context/ColorProvider";
 import { SmoothScrollProvider } from "./components/SmoothScrollProvider";
@@ -46,6 +47,7 @@ const App = () => (
 
                 <Route path="/cuentas" element={<ManageAccounts />} />
                 <Route path="/reportes" element={<AdvancedReports />} />
+                <Route path="/roi" element={<ROIPage />} />
                 <Route path="/configuracion" element={<Settings />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
