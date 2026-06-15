@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { TradeForm } from "@/components/TradeForm";
 import { Label } from "@/components/ui/label";
 import { useEntryTypes } from "@/hooks/useEntryTypes";
+import { isBreakEvenTrade } from "@/utils/tradeStatsCalculations";
 
 interface Trade {
   id: string;
@@ -35,6 +36,8 @@ interface Trade {
   trade_of_day_image?: string | null;
   trade_of_day_notes?: string | null;
   entry_types?: string[] | null;
+  /** Manual break-even flag — see isBreakEvenTrade() for canonical classification */
+  is_be?: boolean | null;
   accounts?: {
     account_name: string;
   };
@@ -255,12 +258,20 @@ const TradeDetail = () => {
                 title="Cuenta"
                 value={trade.accounts?.account_name || 'N/A'}
               />
-              <InfoCard
-                title="PnL Neto"
-                value={`$${pnl.toFixed(2)}`}
-                isProfit={pnl > 0}
-                isLoss={pnl < 0}
-              />
+              {/* PnL Neto with optional BE badge */}
+              <div className="bg-neutral-800 p-4 rounded-lg">
+                <h4 className="text-sm text-neutral-400 mb-1">PnL Neto</h4>
+                <div className="flex items-center gap-2">
+                  <p className={`text-xl font-bold ${pnl > 0 ? 'text-[var(--profit-color)]' : pnl < 0 ? 'text-[var(--loss-color)]' : 'text-muted-foreground'}`}>
+                    ${pnl.toFixed(2)}
+                  </p>
+                  {isBreakEvenTrade(trade) && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-500/20 text-slate-400 border border-slate-500/30">
+                      BE
+                    </span>
+                  )}
+                </div>
+              </div>
               <InfoCard
                 title="Riesgo ($)"
                 value={`$${risk.toFixed(2)}`}

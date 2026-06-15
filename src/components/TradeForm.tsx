@@ -115,6 +115,9 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
   // Estado para Tipo de Entrada (multi-select)
   const [selectedEntryTypes, setSelectedEntryTypes] = useState<string[]>([]);
 
+  // Estado para is_be (Break-Even manual flag)
+  const [isBreakEven, setIsBreakEven] = useState(false);
+
   // --- Handlers ---
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -238,6 +241,9 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
       setTradeOfDayImage(tradeToEdit.trade_of_day_image || '');
       setTradeOfDayNotes(tradeToEdit.trade_of_day_notes || '');
 
+      // Break-Even flag
+      setIsBreakEven(tradeToEdit.is_be ?? false);
+
       // Entry Types
       setSelectedEntryTypes(tradeToEdit.entry_types || []);
 
@@ -268,6 +274,7 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
       setTradeOfDayImage('');
       setTradeOfDayNotes('');
       setSelectedEntryTypes([]);
+      setIsBreakEven(false);
 
       // Auto-seleccionar cuenta si hay cuentas disponibles
       if (accounts.length > 0) {
@@ -420,6 +427,7 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
         trade_of_day_image: isTradeOfDay ? (tradeOfDayImage?.trim() || null) : null,
         trade_of_day_notes: isTradeOfDay ? (tradeOfDayNotes?.trim() || null) : null,
         entry_types: selectedEntryTypes.length > 0 ? selectedEntryTypes : null,
+        is_be: isBreakEven,
       };
 
       let tradeId: string | number; // Para guardar el ID del trade
@@ -574,6 +582,7 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
         setTradeOfDayImage('');
         setTradeOfDayNotes('');
         setSelectedEntryTypes([]);
+        setIsBreakEven(false);
 
         // Mantener la cuenta seleccionada o seleccionar la primera
         if (accounts.length > 0) {
@@ -677,6 +686,25 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
             <div className="space-y-2">
               <Label htmlFor="pnl_neto">Resultado final del trade *</Label>
               <Input id="pnl_neto" type="number" step="0.01" placeholder="0.00" value={formData.pnl_neto} onChange={handleInputChange} required className="bg-secondary" />
+              {/* Break-Even (BE) toggle — positioned next to PnL since they are conceptually linked */}
+              <div className="mt-2 p-3 rounded-lg border border-border/50 bg-muted/20 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="is-be-switch" className="text-sm font-medium cursor-pointer">
+                    Marcar como Break-Even (BE)
+                  </Label>
+                  <Switch
+                    id="is-be-switch"
+                    checked={isBreakEven}
+                    onCheckedChange={setIsBreakEven}
+                    className="data-[state=checked]:bg-slate-500"
+                  />
+                </div>
+                {isBreakEven && (
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Este trade no contará como ganancia ni pérdida en las estadísticas, sin importar su PnL.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 

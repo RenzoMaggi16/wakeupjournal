@@ -8,6 +8,7 @@ import { useMemo, useState, useEffect } from "react";
 import { WelcomeOnboardingModal } from "./WelcomeOnboardingModal";
 import { useDateRangeContext } from "@/context/DateRangeContext";
 import { PositiveDaysCard } from "./dashboard/PositiveDaysCard";
+import { isBreakEvenTrade } from "@/utils/tradeStatsCalculations";
 import { WinRateDonutChart } from "@/components/charts/WinRateDonutChart";
 import { DashboardHeader } from "./dashboard/DashboardHeader";
 import { StatCard } from "./dashboard/StatCard";
@@ -42,6 +43,8 @@ interface Trade {
   emocion?: string;
   account_id: string;
   is_outside_plan?: boolean;
+  /** Manual break-even flag — see isBreakEvenTrade() for canonical classification */
+  is_be?: boolean | null;
 }
 
 interface Account {
@@ -192,10 +195,11 @@ export const Dashboard = () => {
     const sortedTrades = [...trades].sort((a, b) => new Date(a.entry_time).getTime() - new Date(b.entry_time).getTime());
     const today = new Date();
 
-    // 1. Global Stats
+    // 1. Global Stats — BE trades excluded from win/loss ratios via isBreakEvenTrade()
     const totalTrades = trades.length;
-    const wins = trades.filter(t => t.pnl_neto > 0);
-    const losses = trades.filter(t => t.pnl_neto < 0); // Breakeven (0) is neutral, not a loss
+    const wins = trades.filter(t => !isBreakEvenTrade(t) && t.pnl_neto > 0);
+    const losses = trades.filter(t => !isBreakEvenTrade(t) && t.pnl_neto < 0);
+    const breakEvens = trades.filter(t => isBreakEvenTrade(t));
     const nonBreakevenTrades = wins.length + losses.length; // Only count wins and losses for win rate
     const winRate = nonBreakevenTrades > 0 ? (wins.length / nonBreakevenTrades) * 100 : 0;
 
@@ -205,15 +209,15 @@ export const Dashboard = () => {
 
     // 2. Daily Stats
     const dailyTrades = trades.filter(t => isSameDay(parseISO(t.entry_time), today));
-    const dailyWins = dailyTrades.filter(t => t.pnl_neto > 0);
-    const dailyLosses = dailyTrades.filter(t => t.pnl_neto < 0); // Breakeven is neutral
+    const dailyWins = dailyTrades.filter(t => !isBreakEvenTrade(t) && t.pnl_neto > 0);
+    const dailyLosses = dailyTrades.filter(t => !isBreakEvenTrade(t) && t.pnl_neto < 0);
     const dailyNonBreakeven = dailyWins.length + dailyLosses.length;
 
     const dailyWinRate = dailyNonBreakeven > 0 ? (dailyWins.length / dailyNonBreakeven) * 100 : 0;
     const dayAvgWin = dailyWins.length > 0 ? dailyWins.reduce((sum, t) => sum + Number(t.pnl_neto), 0) / dailyWins.length : 0;
     const dayAvgLoss = dailyLosses.length > 0 ? Math.abs(dailyLosses.reduce((sum, t) => sum + Number(t.pnl_neto), 0) / dailyLosses.length) : 0;
 
-    // 3. Streak Logic (Breakeven trades are skipped - they don't affect streaks)
+    // 3. Streak Logic — BE trades are skipped (don't break winning or losing streaks)
     let currentStreakCount = 0;
     let currentStreakType: 'win' | 'loss' | 'neutral' = 'neutral';
     let bestStreak = 0;
@@ -221,8 +225,8 @@ export const Dashboard = () => {
 
     let streakVal = 0;
     sortedTrades.forEach(t => {
-      // Skip breakeven trades - they don't affect streaks
-      if (t.pnl_neto === 0) return;
+      // Skip BE trades — they are neutral and do not interrupt streaks
+      if (isBreakEvenTrade(t)) return;
 
       const isWin = t.pnl_neto > 0;
       if (isWin) {
@@ -239,9 +243,15 @@ export const Dashboard = () => {
     currentStreakCount = Math.abs(streakVal);
     currentStreakType = streakVal > 0 ? 'win' : streakVal < 0 ? 'loss' : 'neutral';
 
-    // 4. Profit Factor Logic
-    const grossProfit = trades.reduce((sum, t) => sum + (Number(t.pnl_neto) > 0 ? Number(t.pnl_neto) : 0), 0);
-    const grossLoss = Math.abs(trades.reduce((sum, t) => sum + (Number(t.pnl_neto) < 0 ? Number(t.pnl_neto) : 0), 0));
+    // 4. Profit Factor — BE trades excluded from grossProfit and grossLoss sums
+    const grossProfit = trades
+      .filter(t => !isBreakEvenTrade(t))
+      .reduce((sum, t) => sum + (Number(t.pnl_neto) > 0 ? Number(t.pnl_neto) : 0), 0);
+    const grossLoss = Math.abs(
+      trades
+        .filter(t => !isBreakEvenTrade(t))
+        .reduce((sum, t) => sum + (Number(t.pnl_neto) < 0 ? Number(t.pnl_neto) : 0), 0)
+    );
 
     const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? 100 : 0;
 
@@ -403,9 +413,21 @@ export const Dashboard = () => {
     const monthlyDailyData = Array.from(dailyMap.entries()).map(([day, pnl]) => ({ day, pnl }));
     // NOTE: monthlyTotalPnl, monthlyProfitTotal, monthlyLossTotal are computed from TRADES ONLY.
     // Withdrawals (payouts) are intentionally excluded — they affect balance, NOT trading performance.
+    //
+    // BE trade nuance:
+    //   - monthlyTotalPnl (Net) INCLUDES BE trades' pnl_neto because their PnL still
+    //     hit the account balance, even if they are excluded from win/loss ratios.
+    //   - monthlyProfitTotal and monthlyLossTotal EXCLUDE BE trades for stat accuracy.
+    //   - Therefore: monthlyNet ≠ monthlyProfit - monthlyLoss when BE trades have non-zero PnL.
     const monthlyTotalPnl = monthlyTrades.reduce((sum, t) => sum + Number(t.pnl_neto), 0);
-    const monthlyProfitTotal = monthlyTrades.reduce((sum, t) => sum + (t.pnl_neto > 0 ? Number(t.pnl_neto) : 0), 0);
-    const monthlyLossTotal = Math.abs(monthlyTrades.reduce((sum, t) => sum + (t.pnl_neto < 0 ? Number(t.pnl_neto) : 0), 0));
+    const monthlyProfitTotal = monthlyTrades
+      .filter(t => !isBreakEvenTrade(t))
+      .reduce((sum, t) => sum + (t.pnl_neto > 0 ? Number(t.pnl_neto) : 0), 0);
+    const monthlyLossTotal = Math.abs(
+      monthlyTrades
+        .filter(t => !isBreakEvenTrade(t))
+        .reduce((sum, t) => sum + (t.pnl_neto < 0 ? Number(t.pnl_neto) : 0), 0)
+    );
     return { weeklySummaries, monthlyWinRate, monthlyPayout, monthlyDailyData, monthlyTotalPnl, monthlyProfitTotal, monthlyLossTotal };
   }, [allTrades, payouts, calendarMonth]);
   // Equity Curve Data & Current Balance Calculation
@@ -609,9 +631,9 @@ export const Dashboard = () => {
             <StatCard title="Winrate" value={`${metrics?.winRate.toFixed(2) || '0.00'}%`} animationDelay={0}>
               <div className="h-[60px] flex items-center justify-center mt-2">
                 <WinRateDonutChart
-                  wins={trades.filter(t => t.pnl_neto > 0).length}
-                  losses={trades.filter(t => t.pnl_neto < 0).length}
-                  breakeven={trades.filter(t => t.pnl_neto === 0).length}
+                  wins={trades.filter(t => !isBreakEvenTrade(t) && t.pnl_neto > 0).length}
+                  losses={trades.filter(t => !isBreakEvenTrade(t) && t.pnl_neto < 0).length}
+                  breakeven={trades.filter(t => isBreakEvenTrade(t)).length}
                   hideLegend
                 />
               </div>

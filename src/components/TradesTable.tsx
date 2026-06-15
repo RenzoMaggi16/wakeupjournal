@@ -31,6 +31,7 @@ interface TradeRow {
   trade_type: 'buy' | 'sell';
   account_name: string | null;
   rules_compliance_pct: number | null;
+  is_be?: boolean | null;
 }
 
 interface PayoutRow {
@@ -359,7 +360,14 @@ export const TradesTable = () => {
                           <Badge variant="outline">{trade.par ?? '-'}</Badge>
                         </TableCell>
                         <TableCell className={`text-right font-medium ${pnl > 0 ? 'text-profit-custom' : pnl < 0 ? 'text-loss-custom' : 'text-muted-foreground'}`}>
-                          ${pnl.toFixed(2)}
+                          <span className="flex items-center justify-end gap-1">
+                            ${pnl.toFixed(2)}
+                            {trade.is_be && (
+                              <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold bg-slate-500/20 text-slate-400 border border-slate-500/30">
+                                BE
+                              </span>
+                            )}
+                          </span>
                         </TableCell>
                         <TableCell className={isBuy ? 'text-green-600' : 'text-red-600'}>
                           {isBuy ? 'Compra' : 'Venta'}

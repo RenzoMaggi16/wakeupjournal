@@ -20,6 +20,8 @@ export interface TradeForStats {
   riesgo: number | null;
   is_outside_plan?: boolean;
   setup_compliance?: string | null;
+  /** Manual break-even flag set by the user in TradeForm */
+  is_be?: boolean | null;
 }
 
 export interface PayoutData {
@@ -114,6 +116,23 @@ export interface AdvancedStats {
   lossDays: number;
   breakEvenDays: number;
   consistencyPct: number;
+
+  // Break-even trade count
+  breakEvenCount: number;
+}
+
+// ─── Canonical Break-Even Determination ─────────────────────
+/**
+ * Single source of truth for whether a trade is considered Break-Even.
+ * A trade is BE if EITHER:
+ *   1. The user manually flagged it with `is_be = true`, OR
+ *   2. `pnl_neto` is exactly 0.
+ *
+ * This function MUST be used everywhere in the app that classifies trades
+ * as win/loss/BE. Never re-implement this logic inline.
+ */
+export function isBreakEvenTrade(trade: { pnl_neto: number | null; is_be?: boolean | null }): boolean {
+  return trade.is_be === true || (trade.pnl_neto !== null && trade.pnl_neto === 0);
 }
 
 // ─── Day-of-week names ──────────────────────────────────────
@@ -176,8 +195,9 @@ function computeAvgDuration(
   let count = 0;
 
   trades.forEach(t => {
-    if (filter === 'win' && !(t.pnl_neto > 0)) return;
-    if (filter === 'loss' && !(t.pnl_neto < 0)) return;
+    // Use isBreakEvenTrade for win/loss classification consistency
+    if (filter === 'win' && (isBreakEvenTrade(t) || !(t.pnl_neto > 0))) return;
+    if (filter === 'loss' && (isBreakEvenTrade(t) || !(t.pnl_neto < 0))) return;
 
     const dur = getTradeDurationMinutes(t);
     if (dur !== null) {
@@ -206,8 +226,9 @@ function computeDurationBuckets(trades: TradeForStats[]): DurationBucket[] {
     for (const bucket of buckets) {
       if (dur >= bucket.minMinutes && dur < bucket.maxMinutes) {
         bucket.count++;
-        if (t.pnl_neto > 0) bucket.wins++;
-        else if (t.pnl_neto < 0) bucket.losses++;
+        // BE trades don't count as win or loss in duration buckets
+        if (!isBreakEvenTrade(t) && t.pnl_neto > 0) bucket.wins++;
+        else if (!isBreakEvenTrade(t) && t.pnl_neto < 0) bucket.losses++;
         break;
       }
     }
@@ -322,10 +343,11 @@ export function computePayoutAverage(payouts: PayoutData[]): number {
 export function computeAdvancedStats(trades: TradeForStats[]): AdvancedStats {
   const validTrades = trades.filter(t => t.entry_time);
 
-  // Basic counts
+  // Basic counts — BE trades excluded from wins/losses per isBreakEvenTrade()
   const totalTrades = validTrades.length;
-  const wins = validTrades.filter(t => t.pnl_neto > 0);
-  const losses = validTrades.filter(t => t.pnl_neto < 0);
+  const wins = validTrades.filter(t => !isBreakEvenTrade(t) && t.pnl_neto > 0);
+  const losses = validTrades.filter(t => !isBreakEvenTrade(t) && t.pnl_neto < 0);
+  const breakEvens = validTrades.filter(t => isBreakEvenTrade(t));
 
   // Day of week stats
   const dowStats = computeDayOfWeekStats(validTrades);
@@ -408,5 +430,8 @@ export function computeAdvancedStats(trades: TradeForStats[]): AdvancedStats {
 
     // Consistency
     ...computeConsistency(dailyPnlData),
+
+    // Break-even count
+    breakEvenCount: breakEvens.length,
   };
 }

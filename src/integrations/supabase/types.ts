@@ -261,6 +261,7 @@ export type Database = {
           trade_of_day_image: string | null
           trade_of_day_notes: string | null
           entry_types: string[] | null
+          is_be: boolean | null
           created_at: string | null
           tradovate_fill_id: string | null
         }
@@ -285,6 +286,7 @@ export type Database = {
           trade_of_day_image?: string | null
           trade_of_day_notes?: string | null
           entry_types?: string[] | null
+          is_be?: boolean | null
           created_at?: string | null
           tradovate_fill_id?: string | null
         }
@@ -309,6 +311,7 @@ export type Database = {
           trade_of_day_image?: string | null
           trade_of_day_notes?: string | null
           entry_types?: string[] | null
+          is_be?: boolean | null
           created_at?: string | null
           tradovate_fill_id?: string | null
         }
