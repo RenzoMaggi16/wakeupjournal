@@ -43,6 +43,7 @@
 | `trade_of_day_notes` | `text` |  Nullable |
 | `entry_types` | `_text` |  Nullable |
 | `tradovate_fill_id` | `text` |  Nullable |
+| `is_be` | `bool` |  Nullable |
 
 ## Table `strategies`
 
