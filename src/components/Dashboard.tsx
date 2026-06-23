@@ -5,6 +5,7 @@ import { PnLCalendar } from "./PnLCalendar";
 import { CalendarContainer } from "./calendar/CalendarContainer";
 import EquityChart from "./EquityChart";
 import { useMemo, useState, useEffect } from "react";
+import { useAnimatedNumber } from "@/hooks/useAnimatedNumber";
 import { WelcomeOnboardingModal } from "./WelcomeOnboardingModal";
 import { useDateRangeContext } from "@/context/DateRangeContext";
 import { PositiveDaysCard } from "./dashboard/PositiveDaysCard";
@@ -570,6 +571,16 @@ export const Dashboard = () => {
     return { account: acc, balance: riskBalance, hwm };
   }, [riskAccountId, accounts, allTrades, payouts]);
 
+  // Animated numbers for StatCards
+  const animWinRate     = useAnimatedNumber(metrics?.winRate ?? 0, 900);
+  const animRatio       = useAnimatedNumber(metrics?.ratio ?? 0, 900);
+  const animTrades      = useAnimatedNumber(metrics?.totalTrades ?? 0, 700);
+  const animProfitFactor= useAnimatedNumber(metrics?.profitFactor ?? 0, 900);
+  const animBalance     = useAnimatedNumber(currentBalance, 1000);
+  const animGrossProfit = useAnimatedNumber(metrics?.grossProfit ?? 0, 900);
+  const animGrossLoss   = useAnimatedNumber(metrics?.grossLoss ?? 0, 900);
+  const animMonthlyPnl  = useAnimatedNumber(monthlyTotalPnl, 900);
+
   // If no account is selected (loading or empty), show friendly state
   if (!selectedAccountId && !isLoadingAccounts) {
     if (accounts.length === 0) {
@@ -629,7 +640,7 @@ export const Dashboard = () => {
           {/* KPI Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             {/* Winrate Card */}
-            <StatCard title="Winrate" value={`${metrics?.winRate.toFixed(2) || '0.00'}%`} animationDelay={0}>
+            <StatCard title="Winrate" value={`${animWinRate.toFixed(2)}%`} animationDelay={0}>
               <div className="h-[60px] flex items-center justify-center mt-2">
                 <WinRateDonutChart
                   wins={trades.filter(t => !isBreakEvenTrade(t) && t.pnl_neto > 0).length}
@@ -641,7 +652,7 @@ export const Dashboard = () => {
             </StatCard>
 
             {/* Ratio Card */}
-            <StatCard title="Promedio de victorias / Promedio de derrotas" value={metrics?.ratio.toFixed(2) || '0.00'} animationDelay={0.075}>
+            <StatCard title="Promedio de victorias / Promedio de derrotas" value={animRatio.toFixed(2)} animationDelay={0.075}>
               <WinLossRatioBar
                 winValue={metrics?.avgWin || 0}
                 lossValue={metrics?.avgLoss || 0}
@@ -651,7 +662,7 @@ export const Dashboard = () => {
             </StatCard>
 
             {/* Trade Count Card */}
-            <StatCard title="Número total de operaciones" value={metrics?.totalTrades || 0} animationDelay={0.15}>
+            <StatCard title="Número total de operaciones" value={Math.round(animTrades)} animationDelay={0.15}>
               <div className="mt-2 text-xs text-muted-foreground flex justify-between mb-1">
                 <span>{dateRange ? 'Inicio' : ''}</span>
                 <span>{dateRange ? 'Rango' : ''}</span>
@@ -751,7 +762,7 @@ export const Dashboard = () => {
               })()}
 
               {/* Profit Factor Card — improved aesthetics */}
-              <StatCard title="Profit Factor" value={metrics?.profitFactor ? (metrics.profitFactor === 100 && metrics.grossLoss === 0 ? "∞" : metrics.profitFactor.toFixed(2)) : "0.00"}>
+              <StatCard title="Profit Factor" value={metrics?.grossLoss === 0 && (metrics?.grossProfit ?? 0) > 0 ? "∞" : animProfitFactor.toFixed(2)}>
                 <div className="flex flex-col items-center gap-12 mt-2">
                   {/* Chart */}
                   <div className="h-16 w-16">
@@ -765,13 +776,13 @@ export const Dashboard = () => {
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md" style={{ backgroundColor: 'color-mix(in srgb, var(--profit-color) 15%, transparent)' }}>
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--profit-color)' }} />
                       <span className="text-xs font-semibold" style={{ color: 'var(--profit-color)' }}>
-                        ${metrics?.grossProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "0.00"}
+                        ${animGrossProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md" style={{ backgroundColor: 'color-mix(in srgb, var(--loss-color) 15%, transparent)' }}>
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--loss-color)' }} />
                       <span className="text-xs font-semibold" style={{ color: 'var(--loss-color)' }}>
-                        -${metrics?.grossLoss.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "0.00"}
+                        -${animGrossLoss.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>
@@ -960,8 +971,8 @@ export const Dashboard = () => {
               title="Balance"
               value={
                 displayMode === 'percentage' && displayInitialCapital > 0
-                  ? `${(((currentBalance - displayInitialCapital) / (displayInitialCapital || 1)) * 100).toFixed(2)}%`
-                  : `$${currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+                  ? `${(((animBalance - displayInitialCapital) / (displayInitialCapital || 1)) * 100).toFixed(2)}%`
+                  : `$${animBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
               }
               titleClassName="text-sm md:text-base font-semibold text-foreground text-center"
               contentClassName="flex flex-col items-center justify-center gap-4 text-center"

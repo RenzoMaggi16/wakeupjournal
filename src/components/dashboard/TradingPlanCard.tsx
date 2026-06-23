@@ -1,10 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TradingPlan } from "@/hooks/useTradingPlan";
 import { BookOpen, Shield, Target, Clock, TrendingUp, AlertTriangle, Pencil, Plus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TradingPlanCardProps {
     plan: TradingPlan | null;
@@ -12,17 +10,29 @@ interface TradingPlanCardProps {
     onEdit: () => void;
 }
 
+const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
+    <div className="flex items-center justify-between py-1.5 text-sm border-b border-border/30 last:border-0">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-medium text-foreground text-right">{value}</span>
+    </div>
+);
+
+const Section = ({ icon: Icon, label }: { icon: React.ElementType; label: string }) => (
+    <div className="flex items-center gap-2 pt-1 pb-2">
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-xs font-semibold text-muted-foreground">{label}</span>
+    </div>
+);
+
 export const TradingPlanCard = ({ plan, isLoading, onEdit }: TradingPlanCardProps) => {
     if (isLoading) {
         return (
-            <Card className="border-border bg-card/50 backdrop-blur-sm animate-pulse">
-                <CardContent className="p-6">
-                    <div className="h-6 bg-muted rounded w-3/4 mb-4" />
-                    <div className="space-y-3">
-                        <div className="h-4 bg-muted rounded w-full" />
-                        <div className="h-4 bg-muted rounded w-2/3" />
-                        <div className="h-4 bg-muted rounded w-1/2" />
-                    </div>
+            <Card className="border-border/50 bg-card/50">
+                <CardContent className="p-5 space-y-3 animate-pulse">
+                    <div className="h-5 bg-muted rounded w-2/3" />
+                    <div className="h-4 bg-muted rounded w-full" />
+                    <div className="h-4 bg-muted rounded w-3/4" />
+                    <div className="h-4 bg-muted rounded w-1/2" />
                 </CardContent>
             </Card>
         );
@@ -30,20 +40,20 @@ export const TradingPlanCard = ({ plan, isLoading, onEdit }: TradingPlanCardProp
 
     if (!plan) {
         return (
-            <Card className="border-border bg-card/50 backdrop-blur-sm border-dashed">
-                <CardContent className="p-6 flex flex-col items-center justify-center min-h-[300px] text-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                        <BookOpen className="h-8 w-8 text-primary" />
+            <Card className="border-border/50 border-dashed bg-card/30">
+                <CardContent className="p-8 flex flex-col items-center justify-center text-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-muted/60 flex items-center justify-center">
+                        <BookOpen className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-semibold text-foreground mb-1">Sin Trading Plan</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Define tu plan de trading para mejorar tu disciplina y consistencia.
+                        <p className="font-semibold text-foreground">Sin Trading Plan</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Define tu plan para mejorar la disciplina y consistencia.
                         </p>
                     </div>
-                    <Button onClick={onEdit} className="gap-2">
+                    <Button onClick={onEdit} size="sm" className="gap-2">
                         <Plus className="h-4 w-4" />
-                        Crear Plan
+                        Crear plan
                     </Button>
                 </CardContent>
             </Card>
@@ -57,201 +67,140 @@ export const TradingPlanCard = ({ plan, isLoading, onEdit }: TradingPlanCardProp
     };
 
     const activeRules = (plan.psychological_rules || []).filter((r: any) => r.active);
-    const mainSetup = (plan.setup_rules || [])[0];
+    const setupRules = plan.setup_rules || [];
 
     return (
-        <Card className="border-border bg-card/50 backdrop-blur-sm">
-            <CardHeader className="pb-3">
+        <Card className="border-border/50 bg-card/50">
+            <CardHeader className="px-5 pt-5 pb-3">
                 <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <BookOpen className="h-5 w-5 text-primary" />
-                        Trading Plan
-                    </CardTitle>
-                    <Button variant="ghost" size="icon" onClick={onEdit} className="h-8 w-8">
-                        <Pencil className="h-4 w-4" />
+                    <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-muted/70 flex items-center justify-center">
+                            <BookOpen className="h-3.5 w-3.5 text-foreground/70" />
+                        </div>
+                        <span className="font-semibold text-sm">Trading Plan</span>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                        <Pencil className="h-3.5 w-3.5" />
                     </Button>
                 </div>
             </CardHeader>
-            <CardContent className="pt-0 space-y-4">
-                <ScrollArea className="max-h-[calc(100vh-250px)]">
-                    <div className="space-y-4 pr-3">
-                        {/* General Info */}
-                        <div className="space-y-2">
-                            {plan.market && (
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Mercado</span>
-                                    <span className="font-medium text-foreground">{plan.market}</span>
-                                </div>
-                            )}
-                            {plan.instrument && (
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Instrumento</span>
-                                    <span className="font-medium text-foreground">{plan.instrument}</span>
-                                </div>
-                            )}
-                            {plan.trading_type && (
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Tipo</span>
-                                    <Badge variant="outline" className="text-xs">
-                                        {tradingTypeLabels[plan.trading_type] || plan.trading_type}
-                                    </Badge>
-                                </div>
-                            )}
-                            {plan.session && (
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Sesión</span>
-                                    <span className="font-medium text-foreground">{plan.session}</span>
-                                </div>
-                            )}
-                            {(plan.allowed_hours_start || plan.allowed_hours_end) && (
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground flex items-center gap-1">
-                                        <Clock className="h-3 w-3" />
-                                        Horario
-                                    </span>
-                                    <span className="font-medium text-foreground">
-                                        {plan.allowed_hours_start?.substring(0, 5) || '--:--'} — {plan.allowed_hours_end?.substring(0, 5) || '--:--'}
-                                    </span>
-                                </div>
-                            )}
+
+            <CardContent className="px-5 pb-5 space-y-4">
+                {/* General */}
+                <div>
+                    {plan.market && <Row label="Mercado" value={plan.market} />}
+                    {plan.instrument && <Row label="Instrumento" value={plan.instrument} />}
+                    {plan.trading_type && (
+                        <Row label="Tipo" value={
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted border border-border/60">
+                                {tradingTypeLabels[plan.trading_type] || plan.trading_type}
+                            </span>
+                        } />
+                    )}
+                    {plan.session && <Row label="Sesión" value={plan.session} />}
+                    {(plan.allowed_hours_start || plan.allowed_hours_end) && (
+                        <Row
+                            label={<span className="flex items-center gap-1"><Clock className="h-3 w-3" />Horario</span> as any}
+                            value={`${plan.allowed_hours_start?.substring(0, 5) || '--:--'} – ${plan.allowed_hours_end?.substring(0, 5) || '--:--'}`}
+                        />
+                    )}
+                </div>
+
+                {/* Risk */}
+                {(plan.risk_per_trade != null || plan.max_daily_risk != null || plan.max_trades_per_day != null || plan.min_rr != null || plan.stop_after_consecutive_losses != null) && (
+                    <>
+                        <Separator className="bg-border/40" />
+                        <div>
+                            <Section icon={Shield} label="Gestión de riesgo" />
+                            {plan.risk_per_trade != null && <Row label="Riesgo / trade" value={<span style={{ color: 'var(--loss-color)' }}>{plan.risk_per_trade}%</span>} />}
+                            {plan.max_daily_risk != null && <Row label="Riesgo diario máx." value={<span style={{ color: 'var(--loss-color)' }}>{plan.max_daily_risk}%</span>} />}
+                            {plan.max_trades_per_day != null && <Row label="Max trades / día" value={plan.max_trades_per_day} />}
+                            {plan.min_rr != null && <Row label="R:R mínimo" value={<span style={{ color: 'var(--profit-color)' }}>1:{plan.min_rr}</span>} />}
+                            {plan.stop_after_consecutive_losses != null && <Row label="Stop tras pérdidas" value={`${plan.stop_after_consecutive_losses} consecutivas`} />}
                         </div>
+                    </>
+                )}
 
-                        <Separator className="bg-border/50" />
-
-                        {/* Risk Management */}
-                        <div className="space-y-2">
-                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                                <Shield className="h-3.5 w-3.5" />
-                                Gestión de Riesgo
-                            </h4>
-                            {plan.risk_per_trade != null && (
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Riesgo/trade</span>
-                                    <span className="font-semibold text-loss">{plan.risk_per_trade}%</span>
-                                </div>
-                            )}
-                            {plan.max_daily_risk != null && (
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Riesgo diario máx</span>
-                                    <span className="font-semibold text-loss">{plan.max_daily_risk}%</span>
-                                </div>
-                            )}
-                            {plan.max_trades_per_day != null && (
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Max trades/día</span>
-                                    <span className="font-semibold text-foreground">{plan.max_trades_per_day}</span>
-                                </div>
-                            )}
-                            {plan.min_rr != null && (
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">R:R mínimo</span>
-                                    <span className="font-semibold text-profit">1:{plan.min_rr}</span>
-                                </div>
-                            )}
-                            {plan.stop_after_consecutive_losses != null && (
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Stop tras pérdidas</span>
-                                    <span className="font-semibold text-foreground">{plan.stop_after_consecutive_losses} consecutivas</span>
-                                </div>
-                            )}
+                {/* Psychological rules */}
+                {activeRules.length > 0 && (
+                    <>
+                        <Separator className="bg-border/40" />
+                        <div>
+                            <Section icon={AlertTriangle} label="Reglas psicológicas" />
+                            <ul className="space-y-1.5">
+                                {activeRules.map((rule: any, i: number) => (
+                                    <li key={i} className="flex items-start gap-2 text-sm text-foreground/80">
+                                        <span className="mt-1 w-1 h-1 rounded-full bg-muted-foreground/50 shrink-0" />
+                                        {rule.rule}
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
+                    </>
+                )}
 
-                        {/* Psychological Rules */}
-                        {activeRules.length > 0 && (
-                            <>
-                                <Separator className="bg-border/50" />
-                                <div className="space-y-2">
-                                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                                        <AlertTriangle className="h-3.5 w-3.5" />
-                                        Reglas Psicológicas
-                                    </h4>
-                                    <div className="space-y-1.5">
-                                        {activeRules.map((rule: any, i: number) => (
-                                            <div key={i} className="flex items-start gap-2 text-sm">
-                                                <span className="text-primary mt-0.5">•</span>
-                                                <span className="text-foreground/80">{rule.rule}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-
-                        {/* Main Setup */}
-                        {mainSetup && (
-                            <>
-                                <Separator className="bg-border/50" />
-                                <div className="space-y-2">
-                                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                                        <Target className="h-3.5 w-3.5" />
-                                        Setup Principal
-                                    </h4>
-                                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-                                        <p className="font-medium text-sm text-foreground mb-1.5">{mainSetup.name}</p>
-                                        {mainSetup.conditions?.length > 0 && (
-                                            <div className="space-y-1 max-h-[200px] overflow-y-auto">
-                                                {mainSetup.conditions.map((c: string, i: number) => (
-                                                    <p key={i} className="text-xs text-muted-foreground flex items-center gap-1.5">
-                                                        <TrendingUp className="h-3 w-3 text-primary/60" />
+                {/* Setups */}
+                {setupRules.length > 0 && (
+                    <>
+                        <Separator className="bg-border/40" />
+                        <div>
+                            <Section icon={Target} label="Setups" />
+                            <div className="space-y-2">
+                                {setupRules.map((setup: any, i: number) => (
+                                    <div key={i} className="rounded-lg border border-border/40 bg-muted/20 p-3">
+                                        <p className="text-sm font-medium text-foreground mb-1">{setup.name}</p>
+                                        {setup.conditions?.length > 0 && (
+                                            <ul className="space-y-1">
+                                                {setup.conditions.map((c: string, j: number) => (
+                                                    <li key={j} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                                                        <TrendingUp className="h-3 w-3 mt-0.5 shrink-0 opacity-50" />
                                                         {c}
-                                                    </p>
+                                                    </li>
                                                 ))}
-                                            </div>
+                                            </ul>
                                         )}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-
-                        {/* Additional Setups */}
-                        {(plan.setup_rules || []).length > 1 && (
-                            <div className="space-y-1.5">
-                                {(plan.setup_rules || []).slice(1).map((setup: any, i: number) => (
-                                    <div key={i} className="p-2 rounded bg-muted/30 text-sm">
-                                        <span className="font-medium">{setup.name}</span>
                                     </div>
                                 ))}
                             </div>
-                        )}
-
-                        {/* Monthly Goals */}
-                        {plan.monthly_goals && Object.keys(plan.monthly_goals).length > 0 && (
-                            <>
-                                <Separator className="bg-border/50" />
-                                <div className="space-y-2">
-                                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                        🎯 Objetivos Mensuales
-                                    </h4>
-                                    <div className="space-y-1.5 text-sm">
-                                        {plan.monthly_goals.discipline_goal && (
-                                            <p className="text-foreground/80">
-                                                <span className="text-muted-foreground">Disciplina:</span> {plan.monthly_goals.discipline_goal}
-                                            </p>
-                                        )}
-                                        {plan.monthly_goals.performance_goal && (
-                                            <p className="text-foreground/80">
-                                                <span className="text-muted-foreground">Rendimiento:</span> {plan.monthly_goals.performance_goal}
-                                            </p>
-                                        )}
-                                        {plan.monthly_goals.consistency_goal && (
-                                            <p className="text-foreground/80">
-                                                <span className="text-muted-foreground">Consistencia:</span> {plan.monthly_goals.consistency_goal}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-
-                        {/* Edit button at bottom */}
-                        <div className="pt-2">
-                            <Button onClick={onEdit} variant="outline" className="w-full gap-2">
-                                <Pencil className="h-4 w-4" />
-                                Editar Plan
-                            </Button>
                         </div>
-                    </div>
-                </ScrollArea>
+                    </>
+                )}
+
+                {/* Monthly goals */}
+                {plan.monthly_goals && Object.keys(plan.monthly_goals).some(k => (plan.monthly_goals as any)[k]) && (
+                    <>
+                        <Separator className="bg-border/40" />
+                        <div>
+                            <Section icon={Target} label="Objetivos mensuales" />
+                            <div className="space-y-1.5 text-sm">
+                                {(plan.monthly_goals as any).discipline_goal && (
+                                    <p className="text-foreground/80">
+                                        <span className="text-muted-foreground">Disciplina: </span>
+                                        {(plan.monthly_goals as any).discipline_goal}
+                                    </p>
+                                )}
+                                {(plan.monthly_goals as any).performance_goal && (
+                                    <p className="text-foreground/80">
+                                        <span className="text-muted-foreground">Rendimiento: </span>
+                                        {(plan.monthly_goals as any).performance_goal}
+                                    </p>
+                                )}
+                                {(plan.monthly_goals as any).consistency_goal && (
+                                    <p className="text-foreground/80">
+                                        <span className="text-muted-foreground">Consistencia: </span>
+                                        {(plan.monthly_goals as any).consistency_goal}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                <Separator className="bg-border/40" />
+                <Button onClick={onEdit} variant="outline" size="sm" className="w-full gap-2">
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar plan
+                </Button>
             </CardContent>
         </Card>
     );
