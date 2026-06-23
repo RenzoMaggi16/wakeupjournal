@@ -62,6 +62,7 @@ interface Account {
   funding_phases?: number | null;
   consistency_min_profit_days?: number | null;
   consistency_withdrawal_pct?: number | null;
+  min_profit_threshold?: number | null;
   evaluation_passed?: boolean;
   evaluation_passed_at?: string | null;
   funding_firm_id?: string | null;
@@ -102,7 +103,7 @@ export const Dashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('accounts')
-        .select('id, account_name, account_type, initial_capital, current_capital, drawdown_type, drawdown_amount, highest_balance, profit_target, funding_target_1, funding_target_2, funding_phases, consistency_min_profit_days, consistency_withdrawal_pct, evaluation_passed, evaluation_passed_at, funding_firm_id')
+        .select('id, account_name, account_type, initial_capital, current_capital, drawdown_type, drawdown_amount, highest_balance, profit_target, funding_target_1, funding_target_2, funding_phases, consistency_min_profit_days, consistency_withdrawal_pct, min_profit_threshold, evaluation_passed, evaluation_passed_at, funding_firm_id')
         .order('created_at', { ascending: true }); // Oldest first = "First Created"
 
       if (error) throw error;
@@ -738,12 +739,13 @@ export const Dashboard = () => {
                 });
                 return (
                   <ProfitDaysTracker
+                    accountId={acc.id}
                     trades={postPassTrades.map(t => ({ pnl_neto: t.pnl_neto, entry_time: t.entry_time }))}
                     minProfitDays={acc.consistency_min_profit_days}
                     withdrawalPct={acc.consistency_withdrawal_pct || 100}
                     initialCapital={acc.initial_capital}
                     currentBalance={riskData?.balance ?? currentBalance}
-                    minProfitThreshold={getProfitThreshold(acc.funding_firm_id, acc.account_type)}
+                    minProfitThreshold={acc.min_profit_threshold ?? getProfitThreshold(acc.funding_firm_id, acc.account_type)}
                   />
                 );
               })()}

@@ -33,6 +33,8 @@ export function WelcomeOnboardingModal({ isOpen, onOpenChange, onAccountCreated 
   const [fundingPhases, setFundingPhases] = useState(1);
   const [fundingTarget1, setFundingTarget1] = useState("");
   const [fundingTarget2, setFundingTarget2] = useState("");
+  const [drawdownType, setDrawdownType] = useState<'fixed' | 'trailing' | ''>("");
+  const [drawdownAmount, setDrawdownAmount] = useState("");
 
   // Derived: should show firm dropdown?
   const showFirmDropdown =
@@ -102,6 +104,8 @@ export function WelcomeOnboardingModal({ isOpen, onOpenChange, onAccountCreated 
           funding_phases: accountType === 'evaluation' ? fundingPhases : null,
           funding_target_1: accountType === 'evaluation' ? (parseFloat(fundingTarget1) || null) : null,
           funding_target_2: accountType === 'evaluation' && fundingPhases === 2 ? (parseFloat(fundingTarget2) || null) : null,
+          drawdown_type: drawdownType || null,
+          drawdown_amount: drawdownAmount ? parseFloat(drawdownAmount) : null,
         })
         .select('id, account_name')
         .single();
@@ -165,12 +169,12 @@ export function WelcomeOnboardingModal({ isOpen, onOpenChange, onAccountCreated 
             <div className="relative mx-auto w-24 h-24 flex items-center justify-center">
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-500/20 via-violet-500/20 to-transparent animate-pulse" />
               <div className="absolute inset-2 rounded-full bg-gradient-to-br from-cyan-500/10 to-violet-500/10 backdrop-blur-sm border border-white/5" />
-              <Rocket className="h-10 w-10 text-cyan-400 relative z-10 animate-bounce" style={{ animationDuration: '2s' }} />
+              <Rocket className="h-10 w-10 text-cyan-400 relative z-10" style={{ animation: 'rocketFloat 2s ease-in-out infinite' }} />
               <Sparkles className="h-4 w-4 text-violet-400 absolute top-2 right-2 animate-pulse" />
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
+              <h2 className="text-2xl font-bold text-foreground">
                 ¡Bienvenido a Wakeup Journal!
               </h2>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
@@ -292,6 +296,36 @@ export function WelcomeOnboardingModal({ isOpen, onOpenChange, onAccountCreated 
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {/* Drawdown */}
+              {(accountType === 'evaluation' || accountType === 'live') && (
+                <div className="grid gap-1.5" style={{ animation: 'calendarCellFadeIn 0.3s ease-out both' }}>
+                  <Label className="text-xs font-medium">Tipo de Drawdown</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Select value={drawdownType} onValueChange={(v) => setDrawdownType(v as 'fixed' | 'trailing')}>
+                      <SelectTrigger className="bg-muted/30 border-border/40">
+                        <SelectValue placeholder="Selecciona tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fixed">Fijo</SelectItem>
+                        <SelectItem value="trailing">Trailing</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {drawdownType && (
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={drawdownAmount}
+                        onChange={(e) => setDrawdownAmount(e.target.value)}
+                        placeholder="Monto ($)"
+                        className="bg-muted/30 border-border/40 focus:border-cyan-500/50"
+                        style={{ animation: 'calendarCellFadeIn 0.3s ease-out both' }}
+                      />
+                    )}
+                  </div>
                 </div>
               )}
 

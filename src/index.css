@@ -806,6 +806,12 @@ All colors MUST be HSL.
   color: var(--loss-color);
 }
 
+/* ─── Onboarding Rocket Float ──────────────────────────── */
+@keyframes rocketFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
 /* ─── Calendar Cell Animations ────────────────────────── */
 @keyframes calendarCellFadeIn {
   from {

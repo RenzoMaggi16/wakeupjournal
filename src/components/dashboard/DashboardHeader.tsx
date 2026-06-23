@@ -27,6 +27,13 @@ export const DashboardHeader = ({ selectedAccountId, onAccountChange, accounts, 
             }
         };
         getUser();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            const name = session?.user?.user_metadata?.first_name;
+            if (name) setUserName(name);
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     return (

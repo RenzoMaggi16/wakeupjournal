@@ -128,6 +128,7 @@ export const RiskAccountCard = ({ account, currentBalance, highWaterMark: hwmPro
   const [wantsConsistency, setWantsConsistency] = useState(false);
   const [minProfitDays, setMinProfitDays] = useState(5);
   const [withdrawalPct, setWithdrawalPct] = useState(50);
+  const [minProfitThreshold, setMinProfitThreshold] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Track whether phase 1 notification has been shown in this session
   const [phase1Notified, setPhase1Notified] = useState(false);
@@ -166,7 +167,7 @@ export const RiskAccountCard = ({ account, currentBalance, highWaterMark: hwmPro
   const progressPct = Math.max(0, Math.min(100, ((drawdownAmount - Math.max(0, usedDrawdown)) / drawdownAmount) * 100));
 
   // ── Styles ────────────────────────────────────────────────────
-  let cardBorderColor = "border-l-4 border-l-emerald-500";
+  let cardBorderColor = "border-t-2 border-t-emerald-500";
   let badgeClasses = "bg-emerald-500/10 text-emerald-500 border-emerald-500/30";
   let badgeIcon = <ShieldCheck className="w-3 h-3" />;
   let badgeText = "Operativo";
@@ -174,14 +175,14 @@ export const RiskAccountCard = ({ account, currentBalance, highWaterMark: hwmPro
   let progressBarColor = "bg-emerald-500";
 
   if (status === 'warning') {
-    cardBorderColor = "border-l-4 border-l-amber-500";
+    cardBorderColor = "border-t-2 border-t-amber-500";
     badgeClasses = "bg-amber-500/10 text-amber-500 border-amber-500/30 animate-pulse";
     badgeIcon = <ShieldAlert className="w-3 h-3" />;
     badgeText = "Zona de Riesgo";
     distanceTextColor = "text-amber-400";
     progressBarColor = "bg-amber-500";
   } else if (status === 'breached') {
-    cardBorderColor = "border-l-4 border-l-red-600 shadow-md shadow-red-900/20";
+    cardBorderColor = "border-t-2 border-t-red-600 shadow-md shadow-red-900/20";
     badgeClasses = "bg-red-500/10 text-red-500 border-red-500/30";
     badgeIcon = <Ban className="w-3 h-3" />;
     badgeText = "Cuenta Perdida";
@@ -313,6 +314,7 @@ export const RiskAccountCard = ({ account, currentBalance, highWaterMark: hwmPro
       if (wantsConsistency) {
         updateData.consistency_min_profit_days = minProfitDays;
         updateData.consistency_withdrawal_pct = withdrawalPct;
+        updateData.min_profit_threshold = minProfitThreshold > 0 ? minProfitThreshold : null;
       }
 
       const { error: updateError } = await supabase
@@ -389,7 +391,7 @@ export const RiskAccountCard = ({ account, currentBalance, highWaterMark: hwmPro
         {showCongrats && (
           <div className="rounded-lg border-2 border-emerald-500/50 p-4 bg-gradient-to-r from-emerald-500/10 via-emerald-400/5 to-teal-500/10 animate-in fade-in slide-in-from-top-2 duration-500">
             <div className="flex items-center gap-2 mb-2">
-              <PartyPopper className="h-5 w-5 text-emerald-400 animate-bounce" />
+              <PartyPopper className="h-5 w-5 text-emerald-400" style={{ animation: 'rocketFloat 1.5s ease-in-out infinite' }} />
               <span className="text-sm font-bold text-emerald-400">
                 🎉 {phaseStatus?.isTwoPhase ? '¡Todas las Fases Completadas!' : '¡Objetivo Alcanzado!'}
               </span>
@@ -555,7 +557,7 @@ export const RiskAccountCard = ({ account, currentBalance, highWaterMark: hwmPro
                       phaseStatus.phase2Complete
                         ? 'bg-emerald-500'
                         : phaseStatus.phase1Complete
-                        ? 'bg-gradient-to-r from-violet-500 to-violet-400'
+                        ? 'bg-violet-500'
                         : 'bg-muted/20'
                     }`}
                     style={{ width: `${phaseStatus.phase1Complete ? phaseStatus.phase2Progress : 0}%` }}
@@ -671,6 +673,24 @@ export const RiskAccountCard = ({ account, currentBalance, highWaterMark: hwmPro
                         />
                         <p className="text-[10px] text-muted-foreground">
                           Ej: 50 = podés retirar hasta el 50% del profit generado
+                        </p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="min-profit-threshold" className="text-xs">
+                          Mínimo de profit por día ($)
+                        </Label>
+                        <Input
+                          id="min-profit-threshold"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={minProfitThreshold}
+                          onChange={(e) => setMinProfitThreshold(parseFloat(e.target.value) || 0)}
+                          className="h-8"
+                          placeholder="0 = cualquier ganancia cuenta"
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                          Ej: 100 = el día cuenta solo si ganás al menos $100
                         </p>
                       </div>
                     </div>

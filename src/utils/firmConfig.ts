@@ -10,6 +10,9 @@ export type FundingFirmId =
   | 'topstep'
   | 'apex'
   | 'alpha_futures'
+  | 'lucid_trading'
+  | 'tradefy'
+  | 'take_profit_trader'
   | 'ftmo'
   | 'fundednext'
   | 'the_5ers'
@@ -45,6 +48,24 @@ export const FUNDING_FIRMS: Record<FundingFirmId, FirmConfig> = {
     label: 'Alpha Futures',
     market: 'futures',
     minProfitThreshold: 200,
+  },
+  lucid_trading: {
+    id: 'lucid_trading',
+    label: 'Lucid Trading',
+    market: 'futures',
+    minProfitThreshold: 0,
+  },
+  tradefy: {
+    id: 'tradefy',
+    label: 'Tradefy',
+    market: 'futures',
+    minProfitThreshold: 0,
+  },
+  take_profit_trader: {
+    id: 'take_profit_trader',
+    label: 'Take Profit Trader',
+    market: 'futures',
+    minProfitThreshold: 0,
   },
   // ── Forex Firms ──
   ftmo: {

@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Trash2, Wallet, ArrowLeft } from "lucide-react";
+import { Plus, Pencil, Trash2, Wallet, ArrowLeft, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { getFirmsByMarket, getFirmLabel, marketHasFirms, type FundingFirmId } from "@/utils/firmConfig";
@@ -34,6 +34,7 @@ interface FormData {
   has_consistency: boolean;
   consistency_min_profit_days: number;
   consistency_withdrawal_pct: number;
+  min_profit_threshold: number;
 }
 
 const ManageAccounts = () => {
@@ -57,8 +58,10 @@ const ManageAccounts = () => {
     has_consistency: false,
     consistency_min_profit_days: 5,
     consistency_withdrawal_pct: 50,
+    min_profit_threshold: 0,
   });
 
+  // Reset form default also needs min_profit_threshold
   // Cargar cuentas al montar el componente
   useEffect(() => {
     loadAccounts();
@@ -112,6 +115,7 @@ const ManageAccounts = () => {
       has_consistency: false,
       consistency_min_profit_days: 5,
       consistency_withdrawal_pct: 50,
+      min_profit_threshold: 0,
     });
   };
 
@@ -134,6 +138,7 @@ const ManageAccounts = () => {
         has_consistency: !!(account.consistency_min_profit_days && account.consistency_min_profit_days > 0),
         consistency_min_profit_days: account.consistency_min_profit_days || 5,
         consistency_withdrawal_pct: account.consistency_withdrawal_pct || 50,
+        min_profit_threshold: (account as any).min_profit_threshold || 0,
       });
     } else {
       setEditingAccount(null);
@@ -243,6 +248,9 @@ const ManageAccounts = () => {
           : null,
         consistency_withdrawal_pct: formData.account_type === 'live' && formData.has_consistency
           ? formData.consistency_withdrawal_pct
+          : null,
+        min_profit_threshold: formData.account_type === 'live' && formData.has_consistency && formData.min_profit_threshold > 0
+          ? formData.min_profit_threshold
           : null,
       };
 
@@ -367,7 +375,7 @@ const ManageAccounts = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
             <p className="text-muted-foreground">Cargando cuentas...</p>
           </div>
         </div>
@@ -684,6 +692,19 @@ const ManageAccounts = () => {
                           value={formData.consistency_withdrawal_pct}
                           onChange={(e) => setFormData({ ...formData, consistency_withdrawal_pct: parseInt(e.target.value) || 1 })}
                         />
+                      </div>
+                      <div className="grid gap-1 col-span-2">
+                        <Label htmlFor="min_profit_threshold" className="text-xs">Mínimo de profit por día ($)</Label>
+                        <Input
+                          id="min_profit_threshold"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={formData.min_profit_threshold}
+                          onChange={(e) => setFormData({ ...formData, min_profit_threshold: parseFloat(e.target.value) || 0 })}
+                          placeholder="0 = cualquier ganancia cuenta"
+                        />
+                        <p className="text-[10px] text-muted-foreground">Ej: 100 = el día cuenta solo si ganás al menos $100</p>
                       </div>
                     </div>
                   )}
