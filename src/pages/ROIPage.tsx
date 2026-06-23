@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 
 export const ROIPage = () => {
@@ -52,8 +53,10 @@ export const ROIPage = () => {
         await addEntry.mutateAsync(entryData);
       }
       setIsDialogOpen(false);
-    } catch (error) {
+      toast.success(editingEntry ? "Entrada actualizada" : "Entrada guardada");
+    } catch (error: any) {
       console.error("Error saving entry:", error);
+      toast.error(error?.message ?? "Error al guardar la entrada");
     }
   };
 

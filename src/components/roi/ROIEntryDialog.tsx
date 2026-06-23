@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,12 +23,12 @@ export const ROIEntryDialog = ({ isOpen, onClose, onSave, entryToEdit }: ROIEntr
     empresa_fondeo: "",
     observaciones: "",
   });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (entryToEdit) {
       setFormData({
         ...entryToEdit,
-        // map existing ISO date to YYYY-MM if needed, assuming the DB stores YYYY-MM-DD
         fecha: entryToEdit.fecha ? entryToEdit.fecha.substring(0, 7) : "",
       });
     } else {
@@ -46,158 +46,190 @@ export const ROIEntryDialog = ({ isOpen, onClose, onSave, entryToEdit }: ROIEntr
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    
-    let parsedValue: any = value;
-    if (type === "number") {
-      parsedValue = value === "" ? undefined : Number(value);
-    }
-
     setFormData((prev) => ({
       ...prev,
-      [name]: parsedValue,
+      [name]: type === "number" ? (value === "" ? undefined : Number(value)) : value,
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.fecha) return;
-
-    // ensure fecha is YYYY-MM-01
+    setSaving(true);
     const finalFecha = formData.fecha.length === 7 ? `${formData.fecha}-01` : formData.fecha;
-
-    onSave({
-      ...formData,
-      fecha: finalFecha,
-    });
+    await onSave({ ...formData, fecha: finalFecha });
+    setSaving(false);
   };
 
-  const currentInversion = Number(formData.inversion || 0);
-  const currentRetiros = Number(formData.monto_retiros || 0);
-  const balanceMensual = currentRetiros - currentInversion;
+  const inversion = Number(formData.inversion || 0);
+  const retiros = Number(formData.monto_retiros || 0);
+  const balance = retiros - inversion;
+  const balancePos = balance > 0;
+  const balanceNeg = balance < 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-full max-w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {entryToEdit ? `Editar Entrada — ${entryToEdit.fecha}` : "Nueva Entrada ROI"}
+      <DialogContent className="sm:max-w-[480px] p-0 gap-0 overflow-hidden border-border/50">
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 border-b border-border/40">
+          <DialogTitle className="text-base font-semibold">
+            {entryToEdit ? "Editar entrada" : "Nueva entrada ROI"}
           </DialogTitle>
-        </DialogHeader>
+          {entryToEdit && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {entryToEdit.fecha}
+            </p>
+          )}
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="fecha">Período (Mes/Año)</Label>
-              <Input
-                id="fecha"
-                name="fecha"
-                type="month"
-                required
-                value={formData.fecha || ""}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="empresa_fondeo">Empresa de Fondeo</Label>
-              <Input
-                id="empresa_fondeo"
-                name="empresa_fondeo"
-                type="text"
-                placeholder="ej. Topstep, Apex"
-                value={formData.empresa_fondeo || ""}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="cuentas_compradas">Cuentas Compradas</Label>
-              <Input
-                id="cuentas_compradas"
-                name="cuentas_compradas"
-                type="number"
-                min="0"
-                value={formData.cuentas_compradas ?? ""}
-                onChange={handleChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="inversion">Inversión (USD)</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-2 text-muted-foreground">$</span>
+        <form onSubmit={handleSubmit}>
+          <div className="px-6 py-5 space-y-4">
+            {/* Row 1: Período + Empresa */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="fecha" className="text-xs text-muted-foreground">Período *</Label>
                 <Input
-                  id="inversion"
-                  name="inversion"
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  id="fecha"
+                  name="fecha"
+                  type="month"
                   required
-                  className="pl-7"
-                  value={formData.inversion ?? ""}
+                  value={formData.fecha || ""}
                   onChange={handleChange}
+                  className="bg-muted/30 border-border/40 h-9 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="empresa_fondeo" className="text-xs text-muted-foreground">Empresa de fondeo</Label>
+                <Input
+                  id="empresa_fondeo"
+                  name="empresa_fondeo"
+                  type="text"
+                  placeholder="Topstep, Apex…"
+                  value={formData.empresa_fondeo || ""}
+                  onChange={handleChange}
+                  className="bg-muted/30 border-border/40 h-9 text-sm"
                 />
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="retiros">Cantidad de Retiros</Label>
-              <Input
-                id="retiros"
-                name="retiros"
-                type="number"
-                min="0"
-                value={formData.retiros ?? ""}
+            {/* Divider: Inversión */}
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Inversión</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="cuentas_compradas" className="text-xs text-muted-foreground">Cuentas compradas</Label>
+                  <Input
+                    id="cuentas_compradas"
+                    name="cuentas_compradas"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={formData.cuentas_compradas ?? ""}
+                    onChange={handleChange}
+                    className="bg-muted/30 border-border/40 h-9 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="inversion" className="text-xs text-muted-foreground">Monto invertido *</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">$</span>
+                    <Input
+                      id="inversion"
+                      name="inversion"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      required
+                      placeholder="0.00"
+                      className="pl-6 bg-muted/30 border-border/40 h-9 text-sm"
+                      value={formData.inversion ?? ""}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Divider: Retiros */}
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Retiros</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="retiros" className="text-xs text-muted-foreground">Cantidad de retiros</Label>
+                  <Input
+                    id="retiros"
+                    name="retiros"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={formData.retiros ?? ""}
+                    onChange={handleChange}
+                    className="bg-muted/30 border-border/40 h-9 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="monto_retiros" className="text-xs text-muted-foreground">Monto retirado</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">$</span>
+                    <Input
+                      id="monto_retiros"
+                      name="monto_retiros"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      className="pl-6 bg-muted/30 border-border/40 h-9 text-sm"
+                      value={formData.monto_retiros ?? ""}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Balance preview */}
+            <div className="flex items-center justify-between rounded-lg bg-muted/30 border border-border/40 px-4 py-2.5">
+              <span className="text-xs text-muted-foreground">Balance mensual</span>
+              <span
+                className="font-mono text-sm font-semibold tabular-nums"
+                style={{
+                  color: balancePos ? "var(--profit-color)" : balanceNeg ? "var(--loss-color)" : undefined,
+                }}
+              >
+                {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(balance)}
+              </span>
+            </div>
+
+            {/* Observaciones */}
+            <div className="space-y-1.5">
+              <Label htmlFor="observaciones" className="text-xs text-muted-foreground">Observaciones</Label>
+              <Textarea
+                id="observaciones"
+                name="observaciones"
+                maxLength={500}
+                rows={2}
+                placeholder="Notas opcionales sobre este período…"
+                value={formData.observaciones || ""}
                 onChange={handleChange}
+                className="bg-muted/30 border-border/40 text-sm resize-none"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="monto_retiros">Monto Retirado (USD)</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-2 text-muted-foreground">$</span>
-                <Input
-                  id="monto_retiros"
-                  name="monto_retiros"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="pl-7"
-                  value={formData.monto_retiros ?? ""}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="observaciones">Observaciones</Label>
-            <Textarea
-              id="observaciones"
-              name="observaciones"
-              maxLength={500}
-              rows={3}
-              value={formData.observaciones || ""}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="bg-muted/30 rounded-md p-3 text-sm text-center flex justify-between items-center text-muted-foreground border border-border/50">
-            <span>Balance Mensual:</span>
-            <span className={`font-mono font-bold ${balanceMensual > 0 ? 'text-[var(--profit-color)]' : balanceMensual < 0 ? 'text-[var(--loss-color)]' : ''}`}>
-              {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(balanceMensual)}
-            </span>
-          </div>
-
-          <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border/40 bg-muted/10">
+            <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={saving}>
               Cancelar
             </Button>
-            <Button type="submit">
-              {entryToEdit ? "Guardar Cambios" : "Guardar Entrada"}
+            <Button type="submit" size="sm" disabled={saving}>
+              {saving ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                  Guardando…
+                </span>
+              ) : entryToEdit ? "Guardar cambios" : "Guardar entrada"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

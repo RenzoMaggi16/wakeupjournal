@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Pencil, Trash2, TrendingUp, Plus } from "lucide-react";
+import { Pencil, Trash2, TrendingUp, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Table,
@@ -12,10 +12,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ROIEntryRow } from "@/hooks/useROIEntries";
 
 interface ROITableProps {
@@ -31,232 +30,244 @@ interface ROITableProps {
   onDelete: (id: string) => void;
 }
 
+const fmt = (val: number | null | undefined) => {
+  if (val == null) return <span className="text-muted-foreground/40">—</span>;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  }).format(val);
+};
+
+const fmtNum = (val: number | null | undefined) => {
+  if (val == null) return <span className="text-muted-foreground/40">—</span>;
+  return val;
+};
+
+function ValueCell({ value, positive }: { value: number; positive?: boolean }) {
+  const isPos = value > 0;
+  const isNeg = value < 0;
+  return (
+    <span
+      className="font-mono font-semibold tabular-nums"
+      style={{
+        color: isPos
+          ? "var(--profit-color)"
+          : isNeg
+          ? "var(--loss-color)"
+          : "inherit",
+      }}
+    >
+      {new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+      }).format(value)}
+    </span>
+  );
+}
+
+type SortKey = "fecha" | "inversion" | "monto_retiros" | "balance_mensual" | "balance_acumulado";
+
 export const ROITable = ({ entries, isLoading, onAdd, onEdit, onDelete }: ROITableProps) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("fecha");
+  const [sortAsc, setSortAsc] = useState(true);
 
-  const formatCurrency = (val: number | null | undefined) => {
-    if (val == null) return "-";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-    }).format(val);
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortAsc((a) => !a);
+    else { setSortKey(key); setSortAsc(true); }
   };
 
-  const stringToColor = (str: string) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const hue = Math.abs(hash % 360);
-    return `hsl(${hue}, 40%, 50%, 0.2)`;
-  };
+  const sorted = [...entries].sort((a, b) => {
+    const av = a[sortKey] ?? 0;
+    const bv = b[sortKey] ?? 0;
+    const cmp = String(av).localeCompare(String(bv), undefined, { numeric: true });
+    return sortAsc ? cmp : -cmp;
+  });
 
-  const getTextColor = (str: string) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const hue = Math.abs(hash % 360);
-    return `hsl(${hue}, 60%, 70%)`;
-  };
+  const SortIcon = ({ col }: { col: SortKey }) =>
+    sortKey === col ? (
+      sortAsc ? <ChevronUp className="h-3 w-3 ml-1 inline opacity-70" /> : <ChevronDown className="h-3 w-3 ml-1 inline opacity-70" />
+    ) : (
+      <ChevronDown className="h-3 w-3 ml-1 inline opacity-20" />
+    );
+
+  const thClass = "h-10 px-4 text-left text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors";
+  const thCenterClass = "h-10 px-4 text-center text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Toolbar */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="text-sm text-muted-foreground">
-          {entries.length} {entries.length === 1 ? "entrada registrada" : "entradas registradas"}
-        </div>
-        <Button onClick={onAdd} className="bg-primary text-primary-foreground hover:bg-primary/90">
-          <Plus className="mr-2 h-4 w-4" />
-          Nueva Entrada
+      <div className="flex items-center justify-between px-1">
+        <p className="text-sm text-muted-foreground">
+          {entries.length === 0
+            ? "Sin entradas aún"
+            : `${entries.length} ${entries.length === 1 ? "entrada" : "entradas"}`}
+        </p>
+        <Button onClick={onAdd} size="sm" className="gap-2">
+          <Plus className="h-4 w-4" />
+          Nueva entrada
         </Button>
       </div>
 
-      {/* Table Container */}
-      <div className="border rounded-xl bg-card overflow-hidden">
-        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
-          <Table className="w-full">
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground h-12 whitespace-nowrap">Fecha</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground text-center h-12 whitespace-nowrap"># Cuentas Compradas</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground h-12 whitespace-nowrap">Inversión</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground text-center h-12 whitespace-nowrap"># Retiros</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground h-12 whitespace-nowrap">Monto Retiros</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground h-12 whitespace-nowrap">Balance Mensual</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground h-12 whitespace-nowrap">Empresa de Fondeo</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground h-12 hidden sm:table-cell whitespace-nowrap">Inversión Acumulada</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground h-12 hidden sm:table-cell whitespace-nowrap">Retiros Acumulados</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground h-12 whitespace-nowrap">Balance Acumulado</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground h-12 hidden sm:table-cell whitespace-nowrap">Observaciones</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground h-12 text-center whitespace-nowrap">Acciones</TableHead>
+      {/* Table */}
+      <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b border-border/50 hover:bg-transparent">
+                <th className={thClass} onClick={() => handleSort("fecha")}>
+                  Período <SortIcon col="fecha" />
+                </th>
+                <th className={thCenterClass}>
+                  Empresa
+                </th>
+                <th className={thCenterClass}>
+                  Cuentas
+                </th>
+                <th className={thClass} onClick={() => handleSort("inversion")}>
+                  Inversión <SortIcon col="inversion" />
+                </th>
+                <th className={thCenterClass}>
+                  Retiros
+                </th>
+                <th className={thClass} onClick={() => handleSort("monto_retiros")}>
+                  Monto retiros <SortIcon col="monto_retiros" />
+                </th>
+                <th className={thClass} onClick={() => handleSort("balance_mensual")}>
+                  Balance mes <SortIcon col="balance_mensual" />
+                </th>
+                <th className={`${thClass} hidden lg:table-cell`} onClick={() => handleSort("balance_acumulado")}>
+                  Balance acum. <SortIcon col="balance_acumulado" />
+                </th>
+                <th className="h-10 px-4 text-center text-sm font-medium text-muted-foreground w-20">
+                  Acciones
+                </th>
               </TableRow>
             </TableHeader>
+
             <TableBody>
               {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: 12 }).map((_, j) => (
-                      <TableCell key={j} className={j >= 7 && j !== 9 && j !== 11 ? 'hidden sm:table-cell' : ''}>
-                        <Skeleton className="h-6 w-full" />
+                Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i} className="border-b border-border/30">
+                    {Array.from({ length: 9 }).map((_, j) => (
+                      <TableCell key={j} className={j === 7 ? "hidden lg:table-cell" : ""}>
+                        <Skeleton className="h-5 w-full rounded" />
                       </TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : entries.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="h-[300px] text-center align-middle">
-                    <div className="flex flex-col items-center justify-center space-y-3">
-                      <TrendingUp className="h-10 w-10 text-muted-foreground/50" />
-                      <div className="text-lg font-medium">Sin registros aún</div>
-                      <div className="text-sm text-muted-foreground">
-                        Agregá tu primera entrada para empezar a trackear tu ROI como prop trader.
+                  <TableCell colSpan={9} className="h-52 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                      <div className="rounded-full bg-muted/50 p-4">
+                        <TrendingUp className="h-6 w-6 opacity-40" />
                       </div>
-                      <Button onClick={onAdd} variant="outline" className="mt-4">
+                      <div>
+                        <p className="font-medium text-foreground">Sin registros aún</p>
+                        <p className="text-sm mt-0.5">Agregá tu primera entrada para trackear tu ROI como prop trader.</p>
+                      </div>
+                      <Button onClick={onAdd} variant="outline" size="sm" className="mt-1">
+                        <Plus className="h-4 w-4 mr-2" />
                         Agregar primera entrada
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                <AnimatePresence>
-                  {entries.map((entry) => {
-                    const bm = entry.balance_mensual;
-                    const bmPos = bm > 0;
-                    const bmNeg = bm < 0;
-                    const ba = entry.balance_acumulado;
-                    const baPos = ba > 0;
-                    const baNeg = ba < 0;
+                <AnimatePresence initial={false}>
+                  {sorted.map((entry, idx) => (
+                    <motion.tr
+                      key={entry.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="border-b border-border/30 hover:bg-muted/30 transition-colors group"
+                    >
+                      {/* Período */}
+                      <TableCell className="px-4 py-3 font-medium whitespace-nowrap">
+                        {format(new Date(`${entry.fecha}T00:00:00`), "MMM yyyy", { locale: es })}
+                      </TableCell>
 
-                    return (
-                      <motion.tr
-                        key={entry.id}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 8 }}
-                        className="h-12 border-b even:bg-muted/20 hover:bg-muted/40 transition-colors"
-                      >
-                        <TableCell className="py-3 px-4 whitespace-nowrap">
-                          {format(new Date(`${entry.fecha}T00:00:00`), "MMM yyyy", { locale: es })}
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-center">
-                          {entry.cuentas_compradas ?? "-"}
-                        </TableCell>
-                        <TableCell className="py-3 px-4 font-mono whitespace-nowrap">
-                          {formatCurrency(entry.inversion)}
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-center">
-                          {entry.retiros ?? "-"}
-                        </TableCell>
-                        <TableCell className="py-3 px-4 font-mono whitespace-nowrap">
-                          {formatCurrency(entry.monto_retiros)}
-                        </TableCell>
-                        <TableCell
-                          className="py-3 px-4 font-mono font-bold whitespace-nowrap"
-                          style={{
-                            backgroundColor: bmPos
-                              ? "var(--calendar-profit-bg)"
-                              : bmNeg
-                              ? "var(--calendar-loss-bg)"
-                              : "transparent",
-                            color: bmPos
-                              ? "var(--profit-color)"
-                              : bmNeg
-                              ? "var(--loss-color)"
-                              : "inherit",
-                          }}
-                        >
-                          {formatCurrency(bm)}
-                        </TableCell>
-                        <TableCell className="py-3 px-4 whitespace-nowrap">
-                          {entry.empresa_fondeo ? (
-                            <div className="flex gap-1 flex-wrap">
-                              {entry.empresa_fondeo.split(" + ").map((firm, i) => (
-                                <Badge
-                                  key={i}
-                                  className="rounded-full px-2 py-0.5 text-xs font-medium border-transparent"
-                                  style={{
-                                    backgroundColor: stringToColor(firm.trim()),
-                                    color: getTextColor(firm.trim()),
-                                  }}
-                                  variant="outline"
-                                >
-                                  {firm.trim()}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : (
-                            "-"
+                      {/* Empresa */}
+                      <TableCell className="px-4 py-3 text-center">
+                        {entry.empresa_fondeo ? (
+                          <span className="text-sm text-foreground/80">{entry.empresa_fondeo}</span>
+                        ) : (
+                          <span className="text-muted-foreground/40">—</span>
+                        )}
+                      </TableCell>
+
+                      {/* Cuentas compradas */}
+                      <TableCell className="px-4 py-3 text-center font-mono text-sm">
+                        {fmtNum(entry.cuentas_compradas)}
+                      </TableCell>
+
+                      {/* Inversión */}
+                      <TableCell className="px-4 py-3 font-mono text-sm whitespace-nowrap text-muted-foreground">
+                        {fmt(entry.inversion)}
+                      </TableCell>
+
+                      {/* Retiros (cantidad) */}
+                      <TableCell className="px-4 py-3 text-center font-mono text-sm">
+                        {fmtNum(entry.retiros)}
+                      </TableCell>
+
+                      {/* Monto retiros */}
+                      <TableCell className="px-4 py-3 font-mono text-sm whitespace-nowrap text-muted-foreground">
+                        {fmt(entry.monto_retiros)}
+                      </TableCell>
+
+                      {/* Balance mensual */}
+                      <TableCell className="px-4 py-3 whitespace-nowrap">
+                        <ValueCell value={entry.balance_mensual} />
+                      </TableCell>
+
+                      {/* Balance acumulado */}
+                      <TableCell className="px-4 py-3 whitespace-nowrap hidden lg:table-cell">
+                        <div className="flex flex-col gap-0.5">
+                          <ValueCell value={entry.balance_acumulado} />
+                          {entry.observaciones && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-xs text-muted-foreground/60 truncate max-w-[140px] cursor-help">
+                                    {entry.observaciones.substring(0, 28)}{entry.observaciones.length > 28 ? "…" : ""}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="left">
+                                  <p className="max-w-xs text-sm">{entry.observaciones}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           )}
-                        </TableCell>
-                        <TableCell className="py-3 px-4 font-mono hidden sm:table-cell whitespace-nowrap">
-                          {formatCurrency(entry.inversion_acumulada)}
-                        </TableCell>
-                        <TableCell className="py-3 px-4 font-mono hidden sm:table-cell whitespace-nowrap">
-                          {formatCurrency(entry.retiros_acumulados)}
-                        </TableCell>
-                        <TableCell
-                          className="py-3 px-4 font-mono font-bold whitespace-nowrap"
-                          style={{
-                            backgroundColor: baPos
-                              ? "var(--calendar-profit-bg)"
-                              : baNeg
-                              ? "var(--calendar-loss-bg)"
-                              : "transparent",
-                            color: baPos
-                              ? "var(--profit-color)"
-                              : baNeg
-                              ? "var(--loss-color)"
-                              : "inherit",
-                          }}
-                        >
-                          {formatCurrency(ba)}
-                        </TableCell>
-                        <TableCell className="py-3 px-4 hidden sm:table-cell">
-                          {entry.observaciones ? (
-                            entry.observaciones.length > 40 ? (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="cursor-help border-b border-dotted border-muted-foreground">
-                                      {entry.observaciones.substring(0, 40)}...
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">{entry.observaciones}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            ) : (
-                              <span>{entry.observaciones}</span>
-                            )
-                          ) : (
-                            "-"
-                          )}
-                        </TableCell>
-                        <TableCell className="py-3 px-4 text-center">
-                          <div className="flex items-center justify-center space-x-1">
-                            <button
-                              onClick={() => onEdit(entry)}
-                              className="p-2.5 rounded-md hover:bg-accent text-muted-foreground transition-colors"
-                              title="Editar"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => setDeletingId(entry.id)}
-                              className="p-2.5 rounded-md hover:bg-destructive/10 text-destructive transition-colors"
-                              title="Eliminar"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </TableCell>
-                      </motion.tr>
-                    );
-                  })}
+                        </div>
+                      </TableCell>
+
+                      {/* Acciones */}
+                      <TableCell className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => onEdit(entry)}
+                            className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                            title="Editar"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingId(entry.id)}
+                            className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </TableCell>
+                    </motion.tr>
+                  ))}
                 </AnimatePresence>
               )}
             </TableBody>
@@ -269,16 +280,13 @@ export const ROITable = ({ entries, isLoading, onAdd, onEdit, onDelete }: ROITab
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar esta entrada?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. La entrada será eliminada permanentemente.
+              Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                if (deletingId) onDelete(deletingId);
-                setDeletingId(null);
-              }}
+              onClick={() => { if (deletingId) { onDelete(deletingId); setDeletingId(null); } }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Eliminar
