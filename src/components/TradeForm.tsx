@@ -11,7 +11,8 @@ import { Combobox } from "@/components/ui/combobox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Plus, AlertTriangle, Star, Upload, Link, X } from "lucide-react";
+import { CalendarIcon, Plus, AlertTriangle, Star, Upload, Link, X, ArrowUp, ArrowDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -606,431 +607,398 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
 
   // --- JSX del Componente ---
   return (
-    <Card className="border-border">
-      <CardHeader>
-        <CardTitle>{tradeToEdit ? "Editar Operación" : "Registrar Operación"}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Selector de Cuenta */}
-          <div className="space-y-2">
-            <Label htmlFor="account-select">Cuenta *</Label>
-            <div className="flex items-center gap-2">
-              <Select
-                value={selectedAccountId || ""}
-                onValueChange={(value) => {
-                  setSelectedAccountId(value);
-                  setAccount(value);
-                }}
-                required
-              >
-                <SelectTrigger id="account-select" className="flex-grow">
-                  <SelectValue placeholder="Seleccionar cuenta..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.account_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setIsAccountDialogOpen(true)}
-                aria-label="Añadir nueva cuenta"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+    <div className="relative animate-in fade-in-0 duration-300">
+      {/* Glow ambiental detrás de la card */}
+      <div
+        className="pointer-events-none absolute -inset-6 rounded-3xl opacity-60"
+        style={{ background: 'radial-gradient(ellipse 55% 40% at 25% 50%, rgba(139,92,246,0.07), transparent), radial-gradient(ellipse 45% 55% at 75% 30%, rgba(6,182,212,0.05), transparent)' }}
+        aria-hidden
+      />
+
+      <Card className="relative border-border/60 shadow-[0_0_60px_-20px_rgba(120,80,220,0.12)] overflow-hidden">
+        {/* Línea de acento superior */}
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" aria-hidden />
+
+        <CardHeader className="pt-6 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-violet-500/25 bg-gradient-to-br from-violet-500/15 to-cyan-500/8">
+              <Plus className="h-4 w-4 text-violet-400" />
+            </div>
+            <div>
+              <CardTitle className="text-xl">{tradeToEdit ? "Editar Operación" : "Registrar Operación"}</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Los campos marcados con * son requeridos</p>
             </div>
           </div>
+        </CardHeader>
 
-          {/* Fila Fecha y Horas */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="trade-date">Fecha del Trade</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant={"outline"} id="trade-date" className="w-full justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {tradeDate ? format(tradeDate, "PPP") : <span>Elige fecha</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={tradeDate} onSelect={setTradeDate} initialFocus /></PopoverContent>
-              </Popover>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="entry-time">Hora Entrada</Label>
-              <Input id="entry-time" type="time" step="1" value={entryTimeString} onChange={(e) => setEntryTimeString(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="exit-time">Hora Salida</Label>
-              <Input id="exit-time" type="time" step="1" value={exitTimeString} onChange={(e) => setExitTimeString(e.target.value)} required />
-            </div>
-          </div>
+        <CardContent className="pt-0">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-0">
 
-          {/* Fila Par y PnL Neto */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="par">Par</Label>
-              <Combobox
-                options={simbolosOptions}
-                value={formData.par}
-                onChange={(value) => handleComboboxChange('par', value)}
-                placeholder="Seleccionar par..."
-                emptyMessage="No se encontraron pares."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="pnl_neto">Resultado final del trade *</Label>
-              <Input id="pnl_neto" type="number" step="0.01" placeholder="0.00" value={formData.pnl_neto} onChange={handleInputChange} required className="bg-secondary" />
-              {/* Break-Even (BE) toggle — positioned next to PnL since they are conceptually linked */}
-              <div className="mt-2 p-3 rounded-lg border border-border/50 bg-muted/20 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="is-be-switch" className="text-sm font-medium cursor-pointer">
-                    Marcar como Break-Even (BE)
-                  </Label>
-                  <Switch
-                    id="is-be-switch"
-                    checked={isBreakEven}
-                    onCheckedChange={setIsBreakEven}
-                    className="data-[state=checked]:bg-slate-500"
-                  />
+              {/* ── Columna Izquierda: datos del trade ── */}
+              <div className="space-y-5 lg:pr-8 lg:border-r lg:border-border/40">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-border/40">
+                  <div className="h-4 w-0.5 rounded-full bg-gradient-to-b from-violet-400 to-cyan-400 shrink-0" />
+                  <span className="text-sm font-semibold text-foreground/80">Datos del Trade</span>
                 </div>
-                {isBreakEven && (
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Este trade no contará como ganancia ni pérdida en las estadísticas, sin importar su PnL.
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
 
-          {/* Fila Dirección y Riesgo */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Dirección</Label>
-              <RadioGroup value={formData.trade_type} onValueChange={handleRadioChange} className="flex space-x-4 pt-2">
-                <div className="flex items-center space-x-2"><RadioGroupItem value="buy" id="buy" /><Label htmlFor="buy">Compra</Label></div>
-                <div className="flex items-center space-x-2"><RadioGroupItem value="sell" id="sell" /><Label htmlFor="sell">Venta</Label></div>
-              </RadioGroup>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="riesgo">Riesgo ($) *</Label>
-              <Input id="riesgo" type="number" step="0.01" placeholder="Ej. 100" value={formData.riesgo} onChange={handleInputChange} required />
-            </div>
-          </div>
-
-          {/* Fila RR Calculado */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="rr-calculated">RR (Calculado)</Label>
-              <Input
-                id="rr-calculated"
-                type="text"
-                value={(() => {
-                  const risk = parseFloat(formData.riesgo);
-                  const pnl = parseFloat(formData.pnl_neto);
-                  if (risk > 0 && !isNaN(pnl)) {
-                    const ratio = pnl / risk;
-                    return `1 : ${ratio.toFixed(2)}`;
-                  }
-                  return 'N/A';
-                })()}
-                readOnly
-                className="bg-secondary/50 border-dashed text-muted-foreground"
-              />
-            </div>
-            <div className="space-y-2">
-              {/* Campo vacío para mantener el layout */}
-            </div>
-          </div>
-
-          {/* Evaluación del Setup */}
-          {tradingPlan && (
-            <div className="space-y-3 p-4 border rounded-md bg-muted/10">
-              <div className="flex items-center gap-2">
-                <Label className="text-base font-semibold">🧠 Evaluación del Setup</Label>
-              </div>
-              {tradingPlan.setup_rules?.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Setup principal: <span className="font-medium text-foreground">{tradingPlan.setup_rules[0].name}</span>
-                </p>
-              )}
-              <p className="text-sm text-muted-foreground">¿Este trade cumple tu Setup Principal?</p>
-              <RadioGroup
-                value={setupCompliance}
-                onValueChange={(value) => {
-                  setSetupCompliance(value as 'full' | 'partial' | 'none');
-                  setOutsidePlanWarning(value !== 'full');
-                }}
-                className="space-y-2"
-              >
-                <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/30 transition-colors">
-                  <RadioGroupItem value="full" id="setup-full" />
-                  <Label htmlFor="setup-full" className="cursor-pointer flex-1">
-                    <span className="text-profit font-medium">✔️ Sí, cumple completamente</span>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/30 transition-colors">
-                  <RadioGroupItem value="partial" id="setup-partial" />
-                  <Label htmlFor="setup-partial" className="cursor-pointer flex-1">
-                    <span className="text-yellow-400 font-medium">⚠️ Parcialmente</span>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/30 transition-colors">
-                  <RadioGroupItem value="none" id="setup-none" />
-                  <Label htmlFor="setup-none" className="cursor-pointer flex-1">
-                    <span className="text-loss font-medium">❌ No cumple</span>
-                  </Label>
-                </div>
-              </RadioGroup>
-
-              {outsidePlanWarning && (
-                <div className="flex items-center gap-2 p-3 rounded-md bg-yellow-500/10 border border-yellow-500/30 mt-2">
-                  <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0" />
-                  <p className="text-sm text-yellow-200">
-                    Estás registrando un trade fuera de tu plan de trading.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Fila Emoción */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="emocion">Emoción</Label>
-              <Combobox
-                options={emocionOptions}
-                value={formData.emocion}
-                onChange={(value) => handleComboboxChange('emocion', value)}
-                placeholder="Seleccionar emoción..."
-                emptyMessage="No se encontraron emociones."
-              />
-            </div>
-            <div className="space-y-2">
-              {/* Empty placeholder to keep alignment if needed, or just remove grid */}
-            </div>
-          </div>
-
-
-          {/* Calificación del Setup */}
-          <div className="space-y-3 pt-4">
-            <Label className="font-semibold text-lg">Calificación del Setup</Label>
-            <ToggleGroup type="single" value={setupRating} onValueChange={(value) => { if (value) setSetupRating(value); }} className="grid grid-cols-5 gap-3">
-              {['Malo', 'Regular', 'Aceptable', 'Bueno', 'Excelente'].map((rating) => (
-                <ToggleGroupItem key={rating} value={rating} aria-label={`Calificación ${rating}`}
-                  className="h-14 w-full p-2 border border-neutral-700 bg-neutral-900 text-sm md:text-base font-bold text-white data-[state=on]:bg-primary data-[state=on]:border-primary/80 data-[state=on]:text-primary-foreground hover:bg-neutral-800 transition-colors">
-                  {rating}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </div>
-
-          {/* Tipo de Entrada (Dynamic Multi-select) */}
-          <EntryTypeManager
-            selectedTypes={selectedEntryTypes}
-            onSelectionChange={setSelectedEntryTypes}
-          />
-
-          {/* Notas Pre y Post Trade */}
-          <div className="space-y-4 pt-4 col-span-1 md:col-span-2"> {/* Ocupa todo el ancho */}
-            <Label className="font-semibold text-lg">Análisis (Pre y Post Trade)</Label>
-            <div className="space-y-2 p-4 rounded-lg border border-neutral-800 bg-neutral-950/50">
-              <Label htmlFor="pre-trade-notes" className="text-primary font-medium">Análisis Pre-Trade</Label>
-              <Textarea id="pre-trade-notes" placeholder="¿Por qué estoy tomando este trade? ¿Qué confirmaciones veo?" value={preTradeNotes} onChange={(e) => setPreTradeNotes(e.target.value)} className="bg-transparent border-0 p-0 focus:ring-0 focus-visible:ring-offset-0 focus-visible:ring-0 min-h-[80px]" />
-            </div>
-            <div className="space-y-2 p-4 rounded-lg border border-neutral-800 bg-neutral-950/50">
-              <Label htmlFor="post-trade-notes" className="text-primary font-medium">Reflexión Post-Trade</Label>
-              <Textarea id="post-trade-notes" placeholder="¿Qué salió bien/mal? ¿Seguí el plan? ¿Cómo me sentí?" value={postTradeNotes} onChange={(e) => setPostTradeNotes(e.target.value)} className="bg-transparent border-0 p-0 focus:ring-0 focus-visible:ring-offset-0 focus-visible:ring-0 min-h-[80px]" />
-            </div>
-          </div>
-
-          {/* Sección de Imágenes de Gráficos (M1, M5, M15) */}
-          <div className="space-y-3 pt-4 col-span-1 md:col-span-2">
-            <Label className="font-semibold text-lg">Imágenes de Gráficos (Opcional)</Label>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-              {/* ---- M1 ---- */}
-              {([
-                { label: 'M1', url: imageUrlM1, setUrl: setImageUrlM1, mode: imageInputModeM1, setMode: setImageInputModeM1, uploading: uploadingM1, setUploading: setUploadingM1, timeframe: 'M1' as const },
-                { label: 'M5', url: imageUrlM5, setUrl: setImageUrlM5, mode: imageInputModeM5, setMode: setImageInputModeM5, uploading: uploadingM5, setUploading: setUploadingM5, timeframe: 'M5' as const },
-                { label: 'M15', url: imageUrlM15, setUrl: setImageUrlM15, mode: imageInputModeM15, setMode: setImageInputModeM15, uploading: uploadingM15, setUploading: setUploadingM15, timeframe: 'M15' as const },
-              ]).map(({ label, url, setUrl, mode, setMode, uploading, setUploading, timeframe }) => (
-                <div key={label} className="space-y-2">
-                  {/* Mode selector tabs */}
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">{label}</Label>
-                    <div className="flex items-center gap-1 bg-neutral-800 rounded-md p-0.5">
-                      <button
-                        type="button"
-                        onClick={() => setMode('url')}
-                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-                          mode === 'url'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        <Link className="h-3 w-3" />
-                        URL
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setMode('file')}
-                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-                          mode === 'file'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        <Upload className="h-3 w-3" />
-                        Archivo
-                      </button>
-                    </div>
+                {/* Cuenta */}
+                <div className="space-y-2">
+                  <Label htmlFor="account-select" className="text-sm font-medium">Cuenta *</Label>
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={selectedAccountId || ""}
+                      onValueChange={(value) => { setSelectedAccountId(value); setAccount(value); }}
+                      required
+                    >
+                      <SelectTrigger id="account-select" className="flex-grow transition-all duration-200 focus:ring-violet-500/30 focus:border-violet-500/40">
+                        <SelectValue placeholder="Seleccionar cuenta..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>{account.account_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setIsAccountDialogOpen(true)}
+                      aria-label="Añadir nueva cuenta"
+                      className="shrink-0 transition-all duration-200 hover:border-violet-500/40 hover:bg-violet-500/5"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
+                </div>
 
-                  {/* URL mode */}
-                  {mode === 'url' && (
-                    <Input
-                      id={`image_url_${label.toLowerCase()}`}
-                      type="url"
-                      placeholder={`Pegar enlace a la imagen ${label}...`}
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      className="bg-secondary"
-                    />
-                  )}
+                {/* Fecha y Horas */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="trade-date" className="text-sm font-medium">Fecha</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" id="trade-date" className="w-full justify-start text-left font-normal text-sm transition-all duration-200 hover:border-violet-500/40 px-3">
+                          <CalendarIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          {tradeDate ? format(tradeDate, "dd/MM/yy") : <span className="text-muted-foreground">Fecha</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar mode="single" selected={tradeDate} onSelect={setTradeDate} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="entry-time" className="text-sm font-medium">Entrada</Label>
+                    <Input id="entry-time" type="time" step="1" value={entryTimeString} onChange={(e) => setEntryTimeString(e.target.value)} required className="transition-all duration-200 focus-visible:ring-violet-500/30 focus-visible:border-violet-500/40 focus-visible:shadow-[0_0_12px_-3px_rgba(139,92,246,0.2)]" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="exit-time" className="text-sm font-medium">Salida</Label>
+                    <Input id="exit-time" type="time" step="1" value={exitTimeString} onChange={(e) => setExitTimeString(e.target.value)} required className="transition-all duration-200 focus-visible:ring-violet-500/30 focus-visible:border-violet-500/40 focus-visible:shadow-[0_0_12px_-3px_rgba(139,92,246,0.2)]" />
+                  </div>
+                </div>
 
-                  {/* File mode */}
-                  {mode === 'file' && (
-                    <div className="space-y-2">
-                      <label
-                        htmlFor={`file_upload_${label.toLowerCase()}`}
-                        className={`flex flex-col items-center justify-center w-full h-24 rounded-md border-2 border-dashed transition-colors cursor-pointer ${
-                          uploading
-                            ? 'border-primary/40 bg-primary/5'
-                            : 'border-neutral-700 bg-neutral-900 hover:border-primary/60 hover:bg-primary/5'
-                        }`}
-                      >
-                        {uploading ? (
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                            <span className="text-xs text-muted-foreground">Subiendo...</span>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center gap-1">
-                            <Upload className="h-5 w-5 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">Click para subir imagen</span>
-                            <span className="text-[10px] text-neutral-600">JPG, PNG, WEBP (máx. 10MB)</span>
-                          </div>
-                        )}
-                        <input
-                          id={`file_upload_${label.toLowerCase()}`}
-                          type="file"
-                          accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                          className="hidden"
-                          disabled={uploading}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) uploadImageToStorage(file, timeframe, setUploading, setUrl);
-                            e.target.value = '';
-                          }}
-                        />
-                      </label>
-
-                      {/* Preview / URL result after upload */}
-                      {url && (
-                        <div className="relative group rounded-md overflow-hidden border border-neutral-700 bg-neutral-900">
-                          <img
-                            src={url}
-                            alt={`Preview ${label}`}
-                            className="w-full h-24 object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setUrl('')}
-                            className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
+                {/* Par y PnL */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="par" className="text-sm font-medium">Par</Label>
+                    <Combobox options={simbolosOptions} value={formData.par} onChange={(value) => handleComboboxChange('par', value)} placeholder="Seleccionar par..." emptyMessage="No se encontraron pares." />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pnl_neto" className="text-sm font-medium">Resultado final *</Label>
+                    <Input id="pnl_neto" type="number" step="0.01" placeholder="0.00" value={formData.pnl_neto} onChange={handleInputChange} required className="bg-secondary transition-all duration-200 focus-visible:ring-violet-500/30 focus-visible:border-violet-500/40 focus-visible:shadow-[0_0_12px_-3px_rgba(139,92,246,0.2)]" />
+                    <div className="p-3 rounded-lg border border-border/50 bg-muted/15 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="is-be-switch" className="text-xs font-medium cursor-pointer text-muted-foreground">Break-Even (BE)</Label>
+                        <Switch id="is-be-switch" checked={isBreakEven} onCheckedChange={setIsBreakEven} className="data-[state=checked]:bg-slate-500 scale-90" />
+                      </div>
+                      {isBreakEven && (
+                        <p className="text-xs text-muted-foreground leading-relaxed animate-in fade-in-0 slide-in-from-top-1 duration-200">
+                          No contará en estadísticas.
+                        </p>
                       )}
                     </div>
-                  )}
+                  </div>
+                </div>
 
-                  {/* Preview thumbnail when URL mode has a value */}
-                  {mode === 'url' && url && (
-                    <div className="relative group rounded-md overflow-hidden border border-neutral-700 bg-neutral-900">
-                      <img
-                        src={url}
-                        alt={`Preview ${label}`}
-                        className="w-full h-20 object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setUrl('')}
-                        className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                {/* Dirección — segmented control */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Dirección</Label>
+                  <div className="flex h-11 rounded-xl border border-border overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => handleRadioChange("buy")}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-2 text-sm font-semibold transition-all duration-200",
+                        formData.trade_type === "buy"
+                          ? "bg-emerald-500/15 text-emerald-400 shadow-[inset_0_0_20px_-4px_rgba(52,211,153,0.2)]"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                      Compra
+                    </button>
+                    <div className="w-px bg-border/60 shrink-0" />
+                    <button
+                      type="button"
+                      onClick={() => handleRadioChange("sell")}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-2 text-sm font-semibold transition-all duration-200",
+                        formData.trade_type === "sell"
+                          ? "bg-rose-500/15 text-rose-400 shadow-[inset_0_0_20px_-4px_rgba(244,63,94,0.2)]"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                      Venta
+                    </button>
+                  </div>
+                </div>
+
+                {/* Riesgo y RR */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="riesgo" className="text-sm font-medium">Riesgo ($) *</Label>
+                    <Input id="riesgo" type="number" step="0.01" placeholder="Ej. 100" value={formData.riesgo} onChange={handleInputChange} required className="transition-all duration-200 focus-visible:ring-violet-500/30 focus-visible:border-violet-500/40 focus-visible:shadow-[0_0_12px_-3px_rgba(139,92,246,0.2)]" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="rr-calculated" className="text-sm font-medium">RR Calculado</Label>
+                    <Input
+                      id="rr-calculated"
+                      type="text"
+                      value={(() => {
+                        const risk = parseFloat(formData.riesgo);
+                        const pnl = parseFloat(formData.pnl_neto);
+                        if (risk > 0 && !isNaN(pnl)) return `1 : ${(pnl / risk).toFixed(2)}`;
+                        return 'N/A';
+                      })()}
+                      readOnly
+                      className={cn(
+                        "bg-secondary/50 border-dashed text-center font-mono text-sm transition-colors duration-200",
+                        (() => {
+                          const risk = parseFloat(formData.riesgo);
+                          const pnl = parseFloat(formData.pnl_neto);
+                          if (risk > 0 && !isNaN(pnl)) {
+                            const r = pnl / risk;
+                            if (r >= 1.5) return "text-emerald-400";
+                            if (r > 0) return "text-yellow-400";
+                            return "text-rose-400";
+                          }
+                          return "text-muted-foreground";
+                        })()
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Evaluación del Setup */}
+                {tradingPlan && (
+                  <div className="space-y-3 p-4 rounded-xl border border-border/60 bg-muted/10">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🧠</span>
+                      <span className="text-sm font-semibold">Evaluación del Setup</span>
+                    </div>
+                    {tradingPlan.setup_rules?.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Setup: <span className="font-medium text-foreground">{tradingPlan.setup_rules[0].name}</span>
+                      </p>
+                    )}
+                    <div className="space-y-1.5">
+                      {[
+                        { value: 'full', label: 'Sí, cumple completamente', emoji: '✔️', on: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400' },
+                        { value: 'partial', label: 'Parcialmente', emoji: '⚠️', on: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400' },
+                        { value: 'none', label: 'No cumple', emoji: '❌', on: 'border-rose-500/40 bg-rose-500/10 text-rose-400' },
+                      ].map(({ value, label, emoji, on }) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => { setSetupCompliance(value as 'full' | 'partial' | 'none'); setOutsidePlanWarning(value !== 'full'); }}
+                          className={cn(
+                            "w-full flex items-center gap-3 p-2.5 rounded-lg border text-sm font-medium transition-all duration-200",
+                            setupCompliance === value ? on : "border-transparent text-muted-foreground hover:border-border/60 hover:bg-muted/30"
+                          )}
+                        >
+                          <span>{emoji}</span>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {outsidePlanWarning && (
+                      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-yellow-500/8 border border-yellow-500/25 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+                        <AlertTriangle className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
+                        <p className="text-xs text-yellow-400">Trade fuera del plan de trading.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Emoción */}
+                <div className="space-y-2">
+                  <Label htmlFor="emocion" className="text-sm font-medium">Emoción al operar</Label>
+                  <Combobox options={emocionOptions} value={formData.emocion} onChange={(value) => handleComboboxChange('emocion', value)} placeholder="Seleccionar emoción..." emptyMessage="No se encontraron emociones." />
+                </div>
+
+                {/* Calificación del Setup */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Calificación del Setup</Label>
+                  <ToggleGroup type="single" value={setupRating} onValueChange={(value) => { if (value) setSetupRating(value); }} className="grid grid-cols-5 gap-1.5">
+                    {[
+                      { label: 'Malo',      active: 'data-[state=on]:bg-rose-500/15 data-[state=on]:border-rose-500/50 data-[state=on]:text-rose-400 data-[state=on]:shadow-[0_0_12px_-2px_rgba(244,63,94,0.35)]' },
+                      { label: 'Regular',   active: 'data-[state=on]:bg-orange-500/15 data-[state=on]:border-orange-500/50 data-[state=on]:text-orange-400 data-[state=on]:shadow-[0_0_12px_-2px_rgba(249,115,22,0.35)]' },
+                      { label: 'Aceptable', active: 'data-[state=on]:bg-yellow-500/15 data-[state=on]:border-yellow-500/50 data-[state=on]:text-yellow-400 data-[state=on]:shadow-[0_0_12px_-2px_rgba(234,179,8,0.35)]' },
+                      { label: 'Bueno',     active: 'data-[state=on]:bg-lime-500/15 data-[state=on]:border-lime-500/50 data-[state=on]:text-lime-400 data-[state=on]:shadow-[0_0_12px_-2px_rgba(132,204,22,0.35)]' },
+                      { label: 'Excelente', active: 'data-[state=on]:bg-emerald-500/15 data-[state=on]:border-emerald-500/50 data-[state=on]:text-emerald-400 data-[state=on]:shadow-[0_0_14px_-2px_rgba(52,211,153,0.45)]' },
+                    ].map(({ label, active }) => (
+                      <ToggleGroupItem
+                        key={label}
+                        value={label}
+                        aria-label={`Calificación ${label}`}
+                        className={cn(
+                          "h-11 w-full p-1 border border-neutral-700/60 bg-neutral-900/60 text-xs font-semibold text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300 hover:border-neutral-600 transition-all duration-200 rounded-lg",
+                          active
+                        )}
                       >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
+                        {label}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
+                </div>
+
+                {/* Tipo de Entrada */}
+                <EntryTypeManager selectedTypes={selectedEntryTypes} onSelectionChange={setSelectedEntryTypes} />
+              </div>
+
+              {/* ── Columna Derecha: análisis, imágenes y trade del día ── */}
+              <div className="space-y-5 lg:pl-8">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-border/40">
+                  <div className="h-4 w-0.5 rounded-full bg-gradient-to-b from-cyan-400 to-violet-400 shrink-0" />
+                  <span className="text-sm font-semibold text-foreground/80">Análisis & Contexto</span>
+                </div>
+
+                {/* Notas Pre y Post Trade */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Pre & Post Trade</Label>
+                  <div className="space-y-2 p-4 rounded-xl border border-neutral-800/80 bg-neutral-950/40 transition-all duration-200 focus-within:border-violet-500/30 focus-within:shadow-[0_0_20px_-6px_rgba(139,92,246,0.15)]">
+                    <Label htmlFor="pre-trade-notes" className="text-sm font-medium text-violet-400">Análisis Pre-Trade</Label>
+                    <Textarea id="pre-trade-notes" placeholder="¿Por qué estoy tomando este trade? ¿Qué confirmaciones veo?" value={preTradeNotes} onChange={(e) => setPreTradeNotes(e.target.value)} className="bg-transparent border-0 p-0 focus:ring-0 focus-visible:ring-offset-0 focus-visible:ring-0 min-h-[100px] text-sm resize-none" />
+                  </div>
+                  <div className="space-y-2 p-4 rounded-xl border border-neutral-800/80 bg-neutral-950/40 transition-all duration-200 focus-within:border-cyan-500/30 focus-within:shadow-[0_0_20px_-6px_rgba(6,182,212,0.12)]">
+                    <Label htmlFor="post-trade-notes" className="text-sm font-medium text-cyan-400">Reflexión Post-Trade</Label>
+                    <Textarea id="post-trade-notes" placeholder="¿Qué salió bien/mal? ¿Seguí el plan? ¿Cómo me sentí?" value={postTradeNotes} onChange={(e) => setPostTradeNotes(e.target.value)} className="bg-transparent border-0 p-0 focus:ring-0 focus-visible:ring-offset-0 focus-visible:ring-0 min-h-[100px] text-sm resize-none" />
+                  </div>
+                </div>
+
+                {/* Imágenes de Gráficos */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Imágenes de Gráficos</Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {([
+                      { label: 'M1', url: imageUrlM1, setUrl: setImageUrlM1, mode: imageInputModeM1, setMode: setImageInputModeM1, uploading: uploadingM1, setUploading: setUploadingM1, timeframe: 'M1' as const },
+                      { label: 'M5', url: imageUrlM5, setUrl: setImageUrlM5, mode: imageInputModeM5, setMode: setImageInputModeM5, uploading: uploadingM5, setUploading: setUploadingM5, timeframe: 'M5' as const },
+                      { label: 'M15', url: imageUrlM15, setUrl: setImageUrlM15, mode: imageInputModeM15, setMode: setImageInputModeM15, uploading: uploadingM15, setUploading: setUploadingM15, timeframe: 'M15' as const },
+                    ]).map(({ label, url, setUrl, mode, setMode, uploading, setUploading, timeframe }) => (
+                      <div key={label} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+                          <div className="flex items-center gap-0.5 bg-neutral-800/80 rounded p-0.5">
+                            <button type="button" onClick={() => setMode('url')} className={cn("flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors", mode === 'url' ? 'bg-violet-600/80 text-white' : 'text-muted-foreground hover:text-foreground')}>
+                              <Link className="h-2.5 w-2.5" />URL
+                            </button>
+                            <button type="button" onClick={() => setMode('file')} className={cn("flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors", mode === 'file' ? 'bg-violet-600/80 text-white' : 'text-muted-foreground hover:text-foreground')}>
+                              <Upload className="h-2.5 w-2.5" />File
+                            </button>
+                          </div>
+                        </div>
+
+                        {mode === 'url' && (
+                          <Input id={`image_url_${label.toLowerCase()}`} type="url" placeholder={`Enlace ${label}...`} value={url} onChange={(e) => setUrl(e.target.value)} className="bg-secondary text-xs h-8 transition-all duration-200 focus-visible:ring-violet-500/30 focus-visible:border-violet-500/40" />
+                        )}
+
+                        {mode === 'file' && (
+                          <div className="space-y-2">
+                            <label htmlFor={`file_upload_${label.toLowerCase()}`} className={cn("flex flex-col items-center justify-center w-full h-20 rounded-lg border-2 border-dashed transition-all duration-200 cursor-pointer", uploading ? 'border-violet-500/40 bg-violet-500/5' : 'border-neutral-700 bg-neutral-900/60 hover:border-violet-500/40 hover:bg-violet-500/5')}>
+                              {uploading ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-violet-400/40 border-t-violet-400" />
+                              ) : (
+                                <div className="flex flex-col items-center gap-0.5">
+                                  <Upload className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-[9px] text-muted-foreground">Subir imagen</span>
+                                </div>
+                              )}
+                              <input id={`file_upload_${label.toLowerCase()}`} type="file" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" className="hidden" disabled={uploading} onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadImageToStorage(file, timeframe, setUploading, setUrl); e.target.value = ''; }} />
+                            </label>
+                            {url && (
+                              <div className="relative group rounded-lg overflow-hidden border border-neutral-700">
+                                <img src={url} alt={`Preview ${label}`} className="w-full h-20 object-cover" />
+                                <button type="button" onClick={() => setUrl('')} className="absolute top-1 right-1 bg-black/70 hover:bg-black/90 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-3 w-3" /></button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {mode === 'url' && url && (
+                          <div className="relative group rounded-lg overflow-hidden border border-neutral-700/80">
+                            <img src={url} alt={`Preview ${label}`} className="w-full h-16 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                            <button type="button" onClick={() => setUrl('')} className="absolute top-1 right-1 bg-black/70 hover:bg-black/90 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-3 w-3" /></button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Trade del Día */}
+                <div className={cn(
+                  "space-y-3 p-4 rounded-xl border transition-all duration-300",
+                  isTradeOfDay ? "border-yellow-500/30 bg-yellow-500/5 shadow-[0_0_20px_-8px_rgba(234,179,8,0.25)]" : "border-border/60 bg-muted/10"
+                )}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <Star className={cn(
+                        "h-5 w-5 transition-all duration-300",
+                        isTradeOfDay ? "text-yellow-400 fill-yellow-400 drop-shadow-[0_0_6px_rgba(250,204,21,0.6)]" : "text-muted-foreground"
+                      )} />
+                      <div>
+                        <Label className="text-sm font-semibold cursor-pointer" htmlFor="trade-of-day-switch">Trade del Día</Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">¿Un trade destacado que no tomaste?</p>
+                      </div>
+                    </div>
+                    <Switch id="trade-of-day-switch" checked={isTradeOfDay} onCheckedChange={setIsTradeOfDay} />
+                  </div>
+
+                  {isTradeOfDay && (
+                    <div className="space-y-3 pt-1 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="trade_of_day_image" className="text-xs font-medium text-muted-foreground">Imagen del Trade</Label>
+                        <Input id="trade_of_day_image" type="url" placeholder="Pegar enlace a la imagen..." value={tradeOfDayImage} onChange={(e) => setTradeOfDayImage(e.target.value)} className="bg-secondary text-sm transition-all duration-200 focus-visible:ring-yellow-500/30 focus-visible:border-yellow-500/40" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="trade_of_day_notes" className="text-xs font-medium text-muted-foreground">¿Por qué es tu Trade del Día?</Label>
+                        <Textarea id="trade_of_day_notes" placeholder="Explica brevemente por qué destacás esta operación..." value={tradeOfDayNotes} onChange={(e) => setTradeOfDayNotes(e.target.value)} className="bg-transparent border border-neutral-700/80 min-h-[70px] text-sm resize-none" />
+                      </div>
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Trade del Día */}
-          <div className="space-y-3 p-4 border rounded-md bg-muted/10 mt-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Star className={`h-5 w-5 ${isTradeOfDay ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
-                <Label className="text-base font-semibold cursor-pointer" htmlFor="trade-of-day-switch">Trade del Día</Label>
               </div>
-              <Switch
-                id="trade-of-day-switch"
-                checked={isTradeOfDay}
-                onCheckedChange={setIsTradeOfDay}
-              />
             </div>
-            <p className="text-xs text-muted-foreground">¿Hubo un trade destacado que no tomaste? Guardalo!</p>
 
-            {isTradeOfDay && (
-              <div className="space-y-3 mt-2 animate-in fade-in-0 slide-in-from-top-2 duration-200">
-                <div className="space-y-1">
-                  <Label htmlFor="trade_of_day_image" className="text-sm">Imagen del Trade</Label>
-                  <Input
-                    id="trade_of_day_image"
-                    type="url"
-                    placeholder="Pegar enlace a la imagen del trade..."
-                    value={tradeOfDayImage}
-                    onChange={(e) => setTradeOfDayImage(e.target.value)}
-                    className="bg-secondary"
-                  />
+            {/* Submit */}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full text-base font-semibold py-6 mt-2 border-0 text-white bg-gradient-to-r from-violet-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 shadow-[0_4px_20px_-6px_rgba(120,80,220,0.5)] hover:shadow-[0_6px_28px_-4px_rgba(120,80,220,0.65)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  Guardando...
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="trade_of_day_notes" className="text-sm">¿Por qué es tu Trade del Día?</Label>
-                  <Textarea
-                    id="trade_of_day_notes"
-                    placeholder="Explica brevemente por qué destacás esta operación..."
-                    value={tradeOfDayNotes}
-                    onChange={(e) => setTradeOfDayNotes(e.target.value)}
-                    className="bg-transparent border border-neutral-700 min-h-[60px]"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Botón de Enviar */}
-          <Button type="submit" className="w-full text-lg py-6 mt-6" disabled={loading}>
-            {loading ? "Guardando..." : (tradeToEdit ? "Actualizar Operación" : "Registrar Operación")}
-          </Button>
-        </form>
+              ) : (
+                tradeToEdit ? "Actualizar Operación" : "Registrar Operación"
+              )}
+            </Button>
+          </form>
 
         <AccountFormDialog
           isOpen={isAccountDialogOpen}
@@ -1045,6 +1013,7 @@ export const TradeForm = ({ tradeToEdit, onSaveSuccess }: TradeFormProps = {}) =
 
       </CardContent>
     </Card>
+  </div>
   );
 };
 

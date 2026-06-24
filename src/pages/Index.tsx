@@ -94,9 +94,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="add">
-            <div className="max-w-2xl mx-auto">
-              <TradeForm />
-            </div>
+            <TradeForm />
           </TabsContent>
 
           <TabsContent value="trades">

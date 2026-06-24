@@ -12,6 +12,7 @@ import { DateRangeFilter } from '@/components/shared/DateRangeFilter';
 import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/Navbar';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "react-router-dom";
 import { BarChart3, Plus, Table as TableIcon, FileBarChart, Banknote, TrendingUp } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -46,9 +47,16 @@ import {
   Legend,
 } from 'recharts';
 
+interface Account {
+  id: string;
+  account_name: string;
+}
+
 const AdvancedReports = () => {
   const [allTrades, setAllTrades] = useState<TradeForStats[]>([]);
   const [allPayouts, setAllPayouts] = useState<PayoutData[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const { dateRange, setDateRange } = useDateRangeContext();
 
@@ -61,11 +69,19 @@ const AdvancedReports = () => {
         } = await supabase.auth.getUser();
         if (!user) return;
 
+        // Fetch accounts
+        const { data: accountsData } = await supabase
+          .from('accounts')
+          .select('id, account_name')
+          .eq('user_id', user.id)
+          .order('account_name');
+        setAccounts((accountsData || []) as Account[]);
+
         // Fetch trades (with discipline and compliance fields)
         const { data: tradesData, error: tradesError } = await supabase
           .from('trades')
           .select(
-            'id, pnl_neto, entry_time, exit_time, par, trade_type, riesgo, is_outside_plan, setup_compliance'
+            'id, pnl_neto, entry_time, exit_time, par, trade_type, riesgo, is_outside_plan, setup_compliance, account_id'
           )
           .eq('user_id', user.id)
           .order('entry_time', { ascending: true });
@@ -94,17 +110,23 @@ const AdvancedReports = () => {
     fetchData();
   }, []);
 
+  // Filter trades by account
+  const tradesByAccount = useMemo(() => {
+    if (selectedAccountId === 'all') return allTrades;
+    return allTrades.filter((t) => t.account_id === selectedAccountId);
+  }, [allTrades, selectedAccountId]);
+
   // Filter trades by shared date range
   const trades = useMemo(() => {
-    if (!dateRange || !dateRange.from) return allTrades;
+    if (!dateRange || !dateRange.from) return tradesByAccount;
     const from = startOfDay(dateRange.from);
     const to = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
-    return allTrades.filter((t) => {
+    return tradesByAccount.filter((t) => {
       if (!t.entry_time) return false;
       const tradeDate = parseISO(t.entry_time);
       return isWithinInterval(tradeDate, { start: from, end: to });
     });
-  }, [allTrades, dateRange]);
+  }, [tradesByAccount, dateRange]);
 
   // Filter payouts by shared date range
   const payouts = useMemo(() => {
@@ -273,7 +295,24 @@ const AdvancedReports = () => {
               Análisis detallado de rendimiento, disciplina, retiros y comportamiento.
             </p>
           </div>
-          <DateRangeFilter dateRange={dateRange} setDateRange={setDateRange} />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            {accounts.length > 0 && (
+              <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="Todas las cuentas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las cuentas</SelectItem>
+                  {accounts.map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.account_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <DateRangeFilter dateRange={dateRange} setDateRange={setDateRange} />
+          </div>
         </div>
 
         {/* Empty state: no data at all */}

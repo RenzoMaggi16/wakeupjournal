@@ -22,6 +22,7 @@ export interface TradeForStats {
   setup_compliance?: string | null;
   /** Manual break-even flag set by the user in TradeForm */
   is_be?: boolean | null;
+  account_id?: string | null;
 }
 
 export interface PayoutData {
