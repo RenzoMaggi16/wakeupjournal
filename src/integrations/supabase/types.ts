@@ -458,6 +458,108 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_recaps: {
+        Row: {
+          id: string
+          user_id: string
+          recap_date: string
+          session_bias_pre: string | null
+          session_bias_post: string | null
+          main_session: string | null
+          market_structure: string | null
+          key_levels: string | null
+          had_news: boolean | null
+          news_notes: string | null
+          image_url_m1: string | null
+          image_url_m5: string | null
+          image_url_m15: string | null
+          image_url_trade1: string | null
+          image_url_trade2: string | null
+          image_url_trade3: string | null
+          followed_plan: boolean | null
+          emotional_state: string | null
+          lessons_learned: string | null
+          notes_for_tomorrow: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          recap_date: string
+          session_bias_pre?: string | null
+          session_bias_post?: string | null
+          main_session?: string | null
+          market_structure?: string | null
+          key_levels?: string | null
+          had_news?: boolean | null
+          news_notes?: string | null
+          image_url_m1?: string | null
+          image_url_m5?: string | null
+          image_url_m15?: string | null
+          image_url_trade1?: string | null
+          image_url_trade2?: string | null
+          image_url_trade3?: string | null
+          followed_plan?: boolean | null
+          emotional_state?: string | null
+          lessons_learned?: string | null
+          notes_for_tomorrow?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          recap_date?: string
+          session_bias_pre?: string | null
+          session_bias_post?: string | null
+          main_session?: string | null
+          market_structure?: string | null
+          key_levels?: string | null
+          had_news?: boolean | null
+          news_notes?: string | null
+          image_url_m1?: string | null
+          image_url_m5?: string | null
+          image_url_m15?: string | null
+          image_url_trade1?: string | null
+          image_url_trade2?: string | null
+          image_url_trade3?: string | null
+          followed_plan?: boolean | null
+          emotional_state?: string | null
+          lessons_learned?: string | null
+          notes_for_tomorrow?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      weekly_notes: {
+        Row: {
+          id: string
+          user_id: string
+          week_start_date: string
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          week_start_date: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          week_start_date?: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       roi_entries: {
         Row: {
           id: string
