@@ -906,22 +906,16 @@ export const Dashboard = () => {
                       </div>
 
                       {/* Trading Performance Stats — trades only, payouts excluded */}
-                      <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
-                        <div className="rounded-md border border-border/30 p-2 text-center">
-                          <div className="text-muted-foreground">Neto</div>
-                          <div className={`font-semibold ${monthlyTotalPnl >= 0 ? 'text-[var(--profit-color)]' : 'text-[var(--loss-color)]'}`}>
-                            {monthlyTotalPnl >= 0 ? '+' : '-'}${(Math.abs(monthlyTotalPnl)).toFixed(2)}
-                          </div>
-                        </div>
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                         <div className="rounded-md border border-border/30 p-2 text-center">
                           <div className="text-muted-foreground">Profit</div>
-                          <div className="font-semibold text-[var(--profit-color)]">
+                          <div className="font-semibold text-[var(--profit-color)] whitespace-nowrap">
                             +${monthlyProfitTotal.toFixed(2)}
                           </div>
                         </div>
                         <div className="rounded-md border border-border/30 p-2 text-center">
                           <div className="text-muted-foreground">Loss</div>
-                          <div className="font-semibold text-[var(--loss-color)]">
+                          <div className="font-semibold text-[var(--loss-color)] whitespace-nowrap">
                             -${monthlyLossTotal.toFixed(2)}
                           </div>
                         </div>
